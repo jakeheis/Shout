@@ -1,0 +1,12 @@
+{
+  "autoPin": true,
+  "pins": [
+    {
+      "package": "CSSH",
+      "reason": null,
+      "repositoryURL": "https://github.com/jakeheis/CSSH",
+      "version": "1.0.0"
+    }
+  ],
+  "version": 1
+}
