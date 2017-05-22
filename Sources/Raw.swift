@@ -2,48 +2,6 @@ import Foundation
 import CSSH
 import Socket
 
-class Session {
-    
-    init() {
-        do {
-            let sock = try Socket.create()
-            try sock.connect(to: "jakeheis.com", port: 22)
-            
-            let rawSession = try RawSession()
-            rawSession.blocking = 1
-            try rawSession.handshake(over: sock)
-            
-            try rawSession.authenticate(user: "", privateKey: "", passphrase: "")
-            
-            let channel = try rawSession.openChannel()
-            
-            try channel.exec(command: "ls -a")
-            
-            var byteCount = 0
-            while true {
-                let (data, bytes) = try channel.readData()
-                if bytes == 0 {
-                    break
-                }
-                
-                if bytes > 0 {
-                    byteCount += bytes
-                    let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
-                        return String(cString: pointer)
-                    }
-                    print(str)
-                } else {
-                    print("libssh2_channel_read returned \(bytes)")
-                }
-            }
-        } catch let error {
-            print(error)
-        }
-        
-    }
-
-}
-
 enum LibSSH2Error: Swift.Error {
     case error(Int32)
     case initializationError
@@ -57,9 +15,9 @@ enum LibSSH2Error: Swift.Error {
 
 class RawSession {
     
-    static let initResult = libssh2_init(0)
+    private static let initResult = libssh2_init(0)
     
-    let cSession: OpaquePointer
+    fileprivate let cSession: OpaquePointer
     
     var blocking: Int32 {
         get {
@@ -85,11 +43,11 @@ class RawSession {
         try LibSSH2Error.check(code: code)
     }
     
-    func authenticate(user: String, privateKey: String, publicKey: String? = nil, passphrase: String) throws {
+    func authenticate(user: String, privateKey: String, publicKey: String, passphrase: String) throws {
         let code = libssh2_userauth_publickey_fromfile_ex(cSession,
                                                           user,
                                                           UInt32(user.characters.count),
-                                                          publicKey ?? (privateKey + ".pub"),
+                                                          publicKey,
                                                           privateKey,
                                                           passphrase)
         try LibSSH2Error.check(code: code)
@@ -107,13 +65,13 @@ class RawSession {
 
 class RawChannel {
     
-    static let session = "session"
-    static let exec = "exec"
+    private static let session = "session"
+    private static let exec = "exec"
     
-    static let windowDefault: UInt32 = 2 * 1024 * 1024
-    static let packetDefault: UInt32 = 32768
+    private static let windowDefault: UInt32 = 2 * 1024 * 1024
+    private static let packetDefault: UInt32 = 32768
     
-    let cChannel: OpaquePointer
+    private let cChannel: OpaquePointer
     
     init(rawSession: RawSession) throws {
         guard let cChannel = libssh2_channel_open_ex(rawSession.cSession,
@@ -154,12 +112,3 @@ class RawChannel {
     }
     
 }
-
-/*
-
-SSH.connect("1.1.1.1") { (connection) in
-    connection.blah()
-    connection.blah()
-}
-
-*/
