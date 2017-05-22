@@ -2,46 +2,6 @@ import Foundation
 import CSSH
 import Socket
 
-struct SockAddr {
-    
-    let raw: Data
-    
-    // 1 byte sin_family
-    // 2 byte sin_port
-    // 4 byte sin_addr
-    
-//    var sinFamily:
-    
-    init(raw: Data) {
-        self.raw = raw
-    }
-    
-}
-
-struct HostAddresses {
-    
-    let addresses: [Data]
-
-    init?(host: String) {
-        let components = host.components(separatedBy: " ")
-        let address = components[0]
-        
-        let hostRef = CFHostCreateWithName(kCFAllocatorDefault, address as CFString).takeRetainedValue()
-        CFHostStartInfoResolution(hostRef, .addresses, nil)
-        guard let a = CFHostGetAddressing(hostRef, nil)?.takeUnretainedValue() else {
-            return nil
-        }
-        
-        guard let b = a as? [Data] else {
-            print("NAH")
-            return nil
-        }
-        self.addresses = b
-        print(b[0] as NSData)
-    }
-    
-}
-
 class Session {
 
     typealias RawSession = OpaquePointer
@@ -61,7 +21,7 @@ class Session {
             let result = libssh2_session_handshake(rawSession, sock.socketfd)
             print(result)
             
-            let result2 = libssh2_userauth_publickey_fromfile_ex(rawSession, "", 0, "", "", "")
+            let result2 = libssh2_userauth_publickey_fromfile_ex(rawSession, "root", 4, "/Users/jakeheiser/.ssh/id_rsa.pub", "/Users/jakeheiser/.ssh/id_rsa", "bnhHtg6VvdtUjseaGBWhfoQU")
             print(result2)
             
             let channel = libssh2_channel_open_ex(rawSession, "session", 7, 2*1024*1024, 32768, nil, 0)
