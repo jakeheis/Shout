@@ -3,62 +3,156 @@ import CSSH
 import Socket
 
 class Session {
-
-    typealias RawSession = OpaquePointer
-
-    static let initResult = libssh2_init(0)
     
-    let rawSession: RawSession
-
     init() {
-        rawSession = libssh2_session_init_ex(nil, nil, nil, nil)
-        
         do {
             let sock = try Socket.create()
             try sock.connect(to: "jakeheis.com", port: 22)
             
-            libssh2_session_set_blocking(rawSession, 1);
-            let result = libssh2_session_handshake(rawSession, sock.socketfd)
-            print(result)
+            let rawSession = try RawSession()
+            rawSession.blocking = 1
+            try rawSession.handshake(over: sock)
             
-            let result2 = libssh2_userauth_publickey_fromfile_ex(rawSession, "root", 4, "/Users/jakeheiser/.ssh/id_rsa.pub", "/Users/jakeheiser/.ssh/id_rsa", "bnhHtg6VvdtUjseaGBWhfoQU")
-            print(result2)
+            try rawSession.authenticate(user: "", privateKey: "", passphrase: "")
             
-            let channel = libssh2_channel_open_ex(rawSession, "session", 7, 2*1024*1024, 32768, nil, 0)
+            let channel = try rawSession.openChannel()
             
-            let result3 = libssh2_channel_process_startup(channel, "exec", 4, "ls -a", 5)
-            print(result3)
+            try channel.exec(command: "ls -a")
             
-            var rc = 0
             var byteCount = 0
-            repeat {
-                var data = Data(repeating: 0, count: 0x4000)
-                
-                rc = data.withUnsafeMutableBytes { (buffer: UnsafeMutablePointer<Int8>) in
-                    return libssh2_channel_read_ex(channel, 0, buffer, 0x400)
+            while true {
+                let (data, bytes) = try channel.readData()
+                if bytes == 0 {
+                    break
                 }
                 
-                if rc > 0 {
-                    byteCount += rc
+                if bytes > 0 {
+                    byteCount += bytes
                     let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
                         return String(cString: pointer)
                     }
                     print(str)
                 } else {
-                    print("libssh2_channel_read returned \(rc)")
+                    print("libssh2_channel_read returned \(bytes)")
                 }
-            } while (rc > 0);
+            }
         } catch let error {
             print(error)
         }
         
     }
 
-    deinit {
-        libssh2_session_free(rawSession)
-        
-    }
+}
 
+enum LibSSH2Error: Swift.Error {
+    case error(Int32)
+    case initializationError
+    
+    static func check(code: Int32) throws {
+        if code != 0 {
+            throw LibSSH2Error.error(code)
+        }
+    }
+}
+
+class RawSession {
+    
+    static let initResult = libssh2_init(0)
+    
+    let cSession: OpaquePointer
+    
+    var blocking: Int32 {
+        get {
+            return libssh2_session_get_blocking(cSession)
+        }
+        set(newValue) {
+            libssh2_session_set_blocking(cSession, newValue)
+        }
+    }
+    
+    init() throws {
+        try LibSSH2Error.check(code: RawSession.initResult)
+        
+        guard let cSession = libssh2_session_init_ex(nil, nil, nil, nil) else {
+            throw LibSSH2Error.initializationError
+        }
+        
+        self.cSession = cSession
+    }
+    
+    func handshake(over socket: Socket) throws {
+        let code = libssh2_session_handshake(cSession, socket.socketfd)
+        try LibSSH2Error.check(code: code)
+    }
+    
+    func authenticate(user: String, privateKey: String, publicKey: String? = nil, passphrase: String) throws {
+        let code = libssh2_userauth_publickey_fromfile_ex(cSession,
+                                                          user,
+                                                          UInt32(user.characters.count),
+                                                          publicKey ?? (privateKey + ".pub"),
+                                                          privateKey,
+                                                          passphrase)
+        try LibSSH2Error.check(code: code)
+    }
+    
+    func openChannel() throws -> RawChannel {
+        return try RawChannel(rawSession: self)
+    }
+    
+    deinit {
+        libssh2_session_free(cSession)
+    }
+    
+}
+
+class RawChannel {
+    
+    static let session = "session"
+    static let exec = "exec"
+    
+    static let windowDefault: UInt32 = 2 * 1024 * 1024
+    static let packetDefault: UInt32 = 32768
+    
+    let cChannel: OpaquePointer
+    
+    init(rawSession: RawSession) throws {
+        guard let cChannel = libssh2_channel_open_ex(rawSession.cSession,
+                                           RawChannel.session,
+                                           UInt32(RawChannel.session.characters.count),
+                                           RawChannel.windowDefault,
+                                           RawChannel.packetDefault, nil, 0) else {
+            throw LibSSH2Error.initializationError
+        }
+        self.cChannel = cChannel
+    }
+    
+    func exec(command: String) throws {
+        let code = libssh2_channel_process_startup(cChannel,
+                                        RawChannel.exec,
+                                        UInt32(RawChannel.exec.characters.count),
+                                        command,
+                                        UInt32(command.characters.count))
+        try LibSSH2Error.check(code: code)
+    }
+    
+    func readData() throws -> (data: Data, bytes: Int) {
+        var data = Data(repeating: 0, count: 0x4000)
+        
+        let rc: Int = data.withUnsafeMutableBytes { (buffer: UnsafeMutablePointer<Int8>) in
+            return libssh2_channel_read_ex(cChannel, 0, buffer, 0x400)
+        }
+        
+        if rc < 0 {
+            throw LibSSH2Error.error(Int32(rc))
+        }
+        
+        return (data, rc)
+    }
+    
+    deinit {
+        libssh2_channel_free(cChannel)
+    }
+    
 }
 
 /*
