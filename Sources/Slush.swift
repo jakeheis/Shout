@@ -1,5 +1,6 @@
 import Foundation
 import CSSH
+import Socket
 
 struct SockAddr {
     
@@ -51,34 +52,45 @@ class Session {
 
     init() {
         rawSession = libssh2_session_init_ex(nil, nil, nil, nil)
-//        struct sockaddr_in a;
-        // TODO: IPV6
-        let socket = CFSocketCreate(kCFAllocatorDefault, AF_INET, SOCK_STREAM, IPPROTO_IP, 0, nil, nil)
         
-        guard let hostAddresses = HostAddresses(host: "google.com") else {
-            print("nah")
-            return
-        }
-
-        let hostAddress = hostAddresses.addresses[0]
-
-        hostAddress.withUnsafeBytes { (sockaddr: UnsafePointer<sockaddr>) in
-            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-            if getnameinfo(sockaddr, socklen_t(hostAddress.count),
-                           &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST) == 0 {
-                if let numAddress = String(validatingUTF8: hostname) {
-                    print(numAddress)
+        do {
+            let sock = try Socket.create()
+            try sock.connect(to: "jakeheis.com", port: 22)
+            
+            libssh2_session_set_blocking(rawSession, 1);
+            let result = libssh2_session_handshake(rawSession, sock.socketfd)
+            print(result)
+            
+            let result2 = libssh2_userauth_publickey_fromfile_ex(rawSession, "", 0, "", "", "")
+            print(result2)
+            
+            let channel = libssh2_channel_open_ex(rawSession, "session", 7, 2*1024*1024, 32768, nil, 0)
+            
+            let result3 = libssh2_channel_process_startup(channel, "exec", 4, "ls -a", 5)
+            print(result3)
+            
+            var rc = 0
+            var byteCount = 0
+            repeat {
+                var data = Data(repeating: 0, count: 0x4000)
+                
+                rc = data.withUnsafeMutableBytes { (buffer: UnsafeMutablePointer<Int8>) in
+                    return libssh2_channel_read_ex(channel, 0, buffer, 0x400)
                 }
-            }
+                
+                if rc > 0 {
+                    byteCount += rc
+                    let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
+                        return String(cString: pointer)
+                    }
+                    print(str)
+                } else {
+                    print("libssh2_channel_read returned \(rc)")
+                }
+            } while (rc > 0);
+        } catch let error {
+            print(error)
         }
-        
-        
-    
-        print(socket as Any, hostAddresses as Any)
-//        CFSocketConnectToAddress(socket, <#T##address: CFData!##CFData!#>, <#T##timeout: CFTimeInterval##CFTimeInterval#>)
-        
-//        var on = 1
-//        setsockopt(CFSocketGetNative(socket), SOL_SOCKET, SO_NOSIGPIPE, &on, UInt32(size(of: int))))
         
     }
 
