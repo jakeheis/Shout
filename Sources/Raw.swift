@@ -193,3 +193,11 @@ class RawAgentPublicKey {
     }
     
 }
+
+extension RawAgentPublicKey: CustomStringConvertible {
+    
+    var description: String {
+        return "Public key: " + String(cString: cIdentity.pointee.comment)
+    }
+    
+}

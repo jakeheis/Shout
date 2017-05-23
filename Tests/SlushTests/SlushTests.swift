@@ -5,10 +5,10 @@ class SlushTests: XCTestCase {
 
     func testExample() {
         do {
-            let ssh = try SSH(host: "jakeheis.com")
-            try ssh.authenticateByAgent(username: "")
-            print(try ssh.execute("ls -a"))
-            print(try ssh.execute("pwd"))
+            try SSH.connect(host: "jakeheis.com", username: "", authMethod: .agent) { (connection) in
+                print(try connection.execute("ls -a"))
+                print(try connection.execute("pwd"))
+            }
         } catch let error {
             XCTFail(String(describing: error))
         }

@@ -6,6 +6,10 @@ class SSH {
     let sock: Socket
     let rawSession: RawSession
 
+    enum Error: Swift.Error {
+        case authError
+    }
+    
     enum AuthMethod {
         case key(Key)
         case password(String)
@@ -16,6 +20,12 @@ class SSH {
         let publicKey: String
         let privateKey: String
         let passphrase: String
+    }
+    
+    static func connect(host: String, port: Int32 = 22, username: String, authMethod: AuthMethod, execution: (_ connection: SSH) throws -> ()) throws {
+        let ssh = try SSH(host: host, port: port)
+        try ssh.authenticate(username: username, authMethod: authMethod)
+        try execution(ssh)
     }
     
     init(host: String, port: Int32 = 22) throws {
@@ -53,13 +63,18 @@ class SSH {
             let agent = try rawSession.agent()
             try agent.connect()
             try agent.listIdentities()
-            
+
             var last: RawAgentPublicKey? = nil
+            var success: Bool = false
             while let identity = try agent.getIdentity(last: last) {
                 if agent.authenticate(username: username, key: identity) {
+                    success = true
                     break
                 }
                 last = identity
+            }
+            guard success else {
+                throw Error.authError
             }
         }
     }
@@ -88,12 +103,3 @@ class SSH {
     }
     
 }
-
-/*
- 
- SSH.connect("1.1.1.1") { (connection) in
- connection.blah()
- connection.blah()
- }
- 
- */
