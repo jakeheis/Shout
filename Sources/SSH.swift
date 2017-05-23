@@ -5,6 +5,18 @@ class SSH {
     
     let sock: Socket
     let rawSession: RawSession
+
+    enum AuthMethod {
+        case key(Key)
+        case password(String)
+        case agent
+    }
+
+    struct Key {
+        let publicKey: String
+        let privateKey: String
+        let passphrase: String
+    }
     
     init(host: String, port: Int32 = 22) throws {
         self.sock = try Socket.create()
@@ -15,11 +27,41 @@ class SSH {
         try rawSession.handshake(over: sock)
     }
     
-    func authenticate(user: String, privateKey: String, publicKey: String? = nil, passphrase: String) throws {
-        try rawSession.authenticate(user: user,
-                                    privateKey: privateKey,
-                                    publicKey: publicKey ?? (privateKey + ".pub"),
-                                    passphrase: passphrase)
+    func authenticate(username: String, privateKey: String, publicKey: String? = nil, passphrase: String) throws {
+        let key = Key(publicKey: publicKey ?? (privateKey + ".pub"), privateKey: privateKey, passphrase: passphrase)
+        try authenticate(username: username, authMethod: .key(key))
+    }
+    
+    func authenticate(username: String, password: String) throws {
+        try authenticate(username: username, authMethod: .password(password))
+    }
+    
+    func authenticateByAgent(username: String) throws {
+        try authenticate(username: username, authMethod: .agent)
+    }
+
+    func authenticate(username: String, authMethod: AuthMethod) throws {
+        switch authMethod {
+        case let .key(key):
+            try rawSession.authenticate(username: username,
+                                        privateKey: key.privateKey,
+                                        publicKey: key.publicKey,
+                                        passphrase: key.passphrase)
+        case let .password(password):
+            try rawSession.authenticate(username: username, password: password)
+        case .agent:
+            let agent = try rawSession.agent()
+            try agent.connect()
+            try agent.listIdentities()
+            
+            var last: RawAgentPublicKey? = nil
+            while let identity = try agent.getIdentity(last: last) {
+                if agent.authenticate(username: username, key: identity) {
+                    break
+                }
+                last = identity
+            }
+        }
     }
     
     func execute(_ command: String) throws -> String {

@@ -19,6 +19,8 @@ class RawSession {
     
     fileprivate let cSession: OpaquePointer
     
+    var rawAgent: RawAgent?
+    
     var blocking: Int32 {
         get {
             return libssh2_session_get_blocking(cSession)
@@ -43,18 +45,37 @@ class RawSession {
         try LibSSH2Error.check(code: code)
     }
     
-    func authenticate(user: String, privateKey: String, publicKey: String, passphrase: String) throws {
+    func authenticate(username: String, privateKey: String, publicKey: String, passphrase: String) throws {
         let code = libssh2_userauth_publickey_fromfile_ex(cSession,
-                                                          user,
-                                                          UInt32(user.characters.count),
+                                                          username,
+                                                          UInt32(username.characters.count),
                                                           publicKey,
                                                           privateKey,
                                                           passphrase)
         try LibSSH2Error.check(code: code)
     }
     
+    func authenticate(username: String, password: String) throws {
+        let code = libssh2_userauth_password_ex(cSession,
+                                                username,
+                                                UInt32(username.characters.count),
+                                                password,
+                                                UInt32(password.characters.count),
+                                                nil)
+        try LibSSH2Error.check(code: code)
+    }
+    
     func openChannel() throws -> RawChannel {
         return try RawChannel(rawSession: self)
+    }
+    
+    func agent() throws -> RawAgent {
+        if let rawAgent = rawAgent {
+            return rawAgent
+        }
+        let newAgent = try RawAgent(rawSession: self)
+        rawAgent = newAgent
+        return newAgent
     }
     
     deinit {
@@ -109,6 +130,66 @@ class RawChannel {
     
     deinit {
         libssh2_channel_free(cChannel)
+    }
+    
+}
+
+class RawAgent {
+    
+    private let cAgent: OpaquePointer
+    
+    init(rawSession: RawSession) throws {
+        guard let cAgent = libssh2_agent_init(rawSession.cSession) else {
+            throw LibSSH2Error.initializationError
+        }
+        self.cAgent = cAgent
+    }
+    
+    func connect() throws {
+        let code = libssh2_agent_connect(cAgent)
+        try LibSSH2Error.check(code: code)
+    }
+    
+    func listIdentities() throws {
+        let code = libssh2_agent_list_identities(cAgent)
+        try LibSSH2Error.check(code: code)
+    }
+    
+    func getIdentity(last: RawAgentPublicKey?) throws -> RawAgentPublicKey? {
+        var publicKeyOptional: UnsafeMutablePointer<libssh2_agent_publickey>? = nil
+        let code = libssh2_agent_get_identity(cAgent, UnsafeMutablePointer(mutating: &publicKeyOptional), last?.cIdentity)
+        
+        if code == 1 { // No more identities
+            return nil
+        }
+        
+        try LibSSH2Error.check(code: code)
+        
+        guard let publicKey = publicKeyOptional else {
+            throw LibSSH2Error.initializationError
+        }
+        
+        return RawAgentPublicKey(cIdentity: publicKey)
+    }
+    
+    func authenticate(username: String, key: RawAgentPublicKey) -> Bool {
+        let code = libssh2_agent_userauth(cAgent, username, key.cIdentity)
+        return code == 0
+    }
+    
+    deinit {
+        libssh2_agent_disconnect(cAgent)
+        libssh2_agent_free(cAgent)
+    }
+    
+}
+
+class RawAgentPublicKey {
+    
+    fileprivate let cIdentity: UnsafeMutablePointer<libssh2_agent_publickey>
+    
+    init(cIdentity: UnsafeMutablePointer<libssh2_agent_publickey>) {
+        self.cIdentity = cIdentity
     }
     
 }

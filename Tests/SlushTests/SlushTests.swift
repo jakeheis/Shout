@@ -6,6 +6,7 @@ class SlushTests: XCTestCase {
     func testExample() {
         do {
             let ssh = try SSH(host: "jakeheis.com")
+            try ssh.authenticateByAgent(username: "")
             print(try ssh.execute("ls -a"))
             print(try ssh.execute("pwd"))
         } catch let error {
