@@ -79,7 +79,12 @@ class SSH {
         }
     }
     
-    func execute(_ command: String) throws -> String {
+    struct CommandExecutionResult {
+        let exitStatus: Int32
+        let output: String
+    }
+    
+    func execute(_ command: String) throws -> CommandExecutionResult {
         let channel = try rawSession.openChannel()
         try channel.exec(command: command)
         
@@ -99,7 +104,12 @@ class SSH {
                 throw LibSSH2Error.error(Int32(bytes))
             }
         }
-        return output
+        
+        try channel.close()
+        try channel.waitClosed()
+        let exitStatus = channel.exitStatus()
+        
+        return CommandExecutionResult(exitStatus: exitStatus, output: output)
     }
     
 }

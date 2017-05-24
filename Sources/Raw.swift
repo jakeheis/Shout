@@ -128,6 +128,20 @@ class RawChannel {
         return (data, rc)
     }
     
+    func close() throws {
+        let code = libssh2_channel_close(cChannel)
+        try LibSSH2Error.check(code: code)
+    }
+    
+    func waitClosed() throws {
+        let code2 = libssh2_channel_wait_closed(cChannel)
+        try LibSSH2Error.check(code: code2)
+    }
+    
+    func exitStatus() -> Int32 {
+        return libssh2_channel_get_exit_status(cChannel)
+    }
+    
     deinit {
         libssh2_channel_free(cChannel)
     }
