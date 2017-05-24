@@ -10,9 +10,34 @@ public class SSH {
     }
     
     public struct Key {
-        let publicKey: String
-        let privateKey: String
-        let passphrase: String
+        
+        public enum DecryptionMethod {
+            case passphrase(String)
+            case agentOrKeyboard
+            case none
+        }
+        
+        public let privateKey: String
+        public let publicKey: String
+        public let decryptionMethod: DecryptionMethod
+
+        var passphrase: String {
+            switch decryptionMethod {
+            case .passphrase(let passphrase):
+                return passphrase
+            case .agentOrKeyboard:
+                return String(cString: getpass("Enter passphrase for \(privateKey) (empty for no passphrase):"))
+            case .none:
+                return ""
+            }
+        }
+        
+        public init(privateKey: String, publicKey: String? = nil, decryptionMethod: DecryptionMethod = .none) {
+            self.privateKey = privateKey
+            self.publicKey = publicKey ?? (privateKey + ".pub")
+            self.decryptionMethod = decryptionMethod
+        }
+        
     }
     
     private init() {}
@@ -41,8 +66,8 @@ public class SSH {
             try rawSession.handshake(over: sock)
         }
         
-        public func authenticate(username: String, privateKey: String, publicKey: String? = nil, passphrase: String) throws {
-            let key = SSH.Key(publicKey: publicKey ?? (privateKey + ".pub"), privateKey: privateKey, passphrase: passphrase)
+        public func authenticate(username: String, privateKey: String, publicKey: String? = nil, decryptionMethod: Key.DecryptionMethod = .none) throws {
+            let key = SSH.Key(privateKey: privateKey, publicKey: publicKey, decryptionMethod: decryptionMethod)
             try authenticate(username: username, authMethod: .key(key))
         }
         
@@ -57,6 +82,12 @@ public class SSH {
         public func authenticate(username: String, authMethod: SSH.AuthMethod) throws {
             switch authMethod {
             case let .key(key):
+                if case .agentOrKeyboard = key.decryptionMethod {
+                    do {
+                        try authenticate(username: username, authMethod: .agent)
+                        break
+                    } catch {}
+                }
                 try rawSession.authenticate(username: username,
                                             privateKey: key.privateKey,
                                             publicKey: key.publicKey,
