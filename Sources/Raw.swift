@@ -2,7 +2,7 @@ import Foundation
 import CSSH
 import Socket
 
-enum LibSSH2Error: Swift.Error {
+public enum LibSSH2Error: Swift.Error {
     case error(Int32)
     case initializationError
     
