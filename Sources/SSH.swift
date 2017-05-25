@@ -128,16 +128,11 @@ public class SSH {
             }
         }
         
-        public struct CommandExecutionResult {
-            let exitStatus: Int32
-            let output: String
-        }
-        
-        public func execute(_ command: String) throws -> CommandExecutionResult {
+        @discardableResult
+        public func execute(_ command: String, output: ((_ output: String) -> ())? = nil) throws -> Int32 {
             let channel = try rawSession.openChannel()
             try channel.exec(command: command)
             
-            var output = ""
             while true {
                 let (data, bytes) = try channel.readData()
                 if bytes == 0 {
@@ -148,7 +143,11 @@ public class SSH {
                     let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
                         return String(cString: pointer)
                     }
-                    output += str
+                    if let output = output {
+                        output(str)
+                    } else {
+                        print(str)
+                    }
                 } else {
                     throw LibSSH2Error.error(Int32(bytes))
                 }
@@ -156,9 +155,16 @@ public class SSH {
             
             try channel.close()
             try channel.waitClosed()
-            let exitStatus = channel.exitStatus()
             
-            return CommandExecutionResult(exitStatus: exitStatus, output: output)
+            return channel.exitStatus()
+        }
+        
+        public func capture(_ command: String) throws -> (Int32, String) {
+            var ongoing = ""
+            let status = try execute(command) { (output) in
+                ongoing += output
+            }
+            return (status, ongoing)
         }
         
     }

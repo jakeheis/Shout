@@ -4,10 +4,11 @@ import XCTest
 class SlushTests: XCTestCase {
 
     func testExample() {
+        sleep(1)
         do {
             try SSH.connect(host: "jakeheis.com", username: "", authMethod: .agent) { (connection) in
-                print(try connection.execute("ls -a"))
-                print(try connection.execute("pwd"))
+                print(try connection.capture("ls -a"))
+                print(try connection.capture("pwd"))
             }
         } catch let error {
             XCTFail(String(describing: error))
