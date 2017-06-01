@@ -45,7 +45,7 @@ class RawSession {
         try LibSSH2Error.check(code: code)
     }
     
-    func authenticate(username: String, privateKey: String, publicKey: String, passphrase: String) throws {
+    func authenticate(username: String, privateKey: String, publicKey: String, passphrase: String?) throws {
         let code = libssh2_userauth_publickey_fromfile_ex(cSession,
                                                           username,
                                                           UInt32(username.characters.count),
