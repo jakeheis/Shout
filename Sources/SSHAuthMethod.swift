@@ -1,12 +1,14 @@
 import Foundation
 
-public protocol SSHAuthMethod {
+public protocol _SSHAuthMethod {
      func authenticate(username: String, session: SSH.Session) throws
 }
 
 extension SSH {
 
-    public struct Password: SSHAuthMethod {
+    public typealias AuthMethod = _SSHAuthMethod
+
+    public struct Password: AuthMethod {
 
         let password: String
 
@@ -20,7 +22,7 @@ extension SSH {
 
     }
 
-    public struct Agent: SSHAuthMethod {
+    public struct Agent: AuthMethod {
 
         public func authenticate(username: String, session: Session) throws {
             let agent = try session.rawSession.agent()
@@ -43,7 +45,7 @@ extension SSH {
 
     }
     
-    public struct Key: SSHAuthMethod {
+    public struct Key: AuthMethod {
         
         public let privateKey: String
         public let publicKey: String

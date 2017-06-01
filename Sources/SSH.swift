@@ -9,7 +9,7 @@ public class SSH {
     
     private init() {}
     
-    public static func connect(host: String, port: Int32 = 22, username: String, authMethod: SSHAuthMethod, execution: (_ session: Session) throws -> ()) throws {
+    public static func connect(host: String, port: Int32 = 22, username: String, authMethod: SSH.AuthMethod, execution: (_ session: Session) throws -> ()) throws {
         let session = try Session(host: host, port: port)
         try session.authenticate(username: username, authMethod: authMethod)
         try execution(session)
@@ -42,7 +42,7 @@ public class SSH {
             try authenticate(username: username, authMethod: Agent())
         }
         
-        public func authenticate(username: String, authMethod: SSHAuthMethod) throws {
+        public func authenticate(username: String, authMethod: SSH.AuthMethod) throws {
             try authMethod.authenticate(username: username, session: self)
         }
         
