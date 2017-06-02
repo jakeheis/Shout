@@ -96,21 +96,21 @@ class RawChannel {
     
     init(rawSession: RawSession) throws {
         guard let cChannel = libssh2_channel_open_ex(rawSession.cSession,
-                                           RawChannel.session,
-                                           UInt32(RawChannel.session.characters.count),
-                                           RawChannel.windowDefault,
-                                           RawChannel.packetDefault, nil, 0) else {
-            throw LibSSH2Error.initializationError
+                                                     RawChannel.session,
+                                                     UInt32(RawChannel.session.characters.count),
+                                                     RawChannel.windowDefault,
+                                                     RawChannel.packetDefault, nil, 0) else {
+                                                        throw LibSSH2Error.initializationError
         }
         self.cChannel = cChannel
     }
     
     func exec(command: String) throws {
         let code = libssh2_channel_process_startup(cChannel,
-                                        RawChannel.exec,
-                                        UInt32(RawChannel.exec.characters.count),
-                                        command,
-                                        UInt32(command.characters.count))
+                                                   RawChannel.exec,
+                                                   UInt32(RawChannel.exec.characters.count),
+                                                   command,
+                                                   UInt32(command.characters.count))
         try LibSSH2Error.check(code: code)
     }
     

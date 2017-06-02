@@ -6,7 +6,7 @@ class SlushTests: XCTestCase {
     func testExample() {
         sleep(1)
         do {
-            try SSH.connect(host: "jakeheis.com", username: "", authMethod: .agent) { (connection) in
+            try SSH.connect(host: "jakeheis.com", username: "", authMethod: SSH.Agent()) { (connection) in
                 print(try connection.capture("ls -a"))
                 print(try connection.capture("pwd"))
             }

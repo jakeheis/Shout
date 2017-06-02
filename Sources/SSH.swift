@@ -2,7 +2,7 @@ import Foundation
 import Socket
 
 public class SSH {
-
+    
     public enum Error: Swift.Error {
         case authError
     }
