@@ -105,6 +105,15 @@ class RawChannel {
         self.cChannel = cChannel
     }
     
+    func requestPty(type: SSH.PtyType) throws {
+        let code = libssh2_channel_request_pty_ex(cChannel,
+                                                  type.rawValue, UInt32(type.rawValue.utf8.count),
+                                                  nil, 0,
+                                                  LIBSSH2_TERM_WIDTH, LIBSSH2_TERM_HEIGHT,
+                                                  LIBSSH2_TERM_WIDTH_PX, LIBSSH2_TERM_WIDTH_PX)
+        try LibSSH2Error.check(code: code)
+    }
+    
     func exec(command: String) throws {
         let code = libssh2_channel_process_startup(cChannel,
                                                    RawChannel.exec,

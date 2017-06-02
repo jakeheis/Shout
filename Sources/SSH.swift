@@ -7,6 +7,15 @@ public class SSH {
         case authError
     }
     
+    public enum PtyType: String {
+        case vanilla
+        case vt100
+        case vt102
+        case vt220
+        case ansi
+        case xterm
+    }
+    
     private init() {}
     
     public static func connect(host: String, port: Int32 = 22, username: String, authMethod: SSH.AuthMethod, execution: (_ session: Session) throws -> ()) throws {
@@ -16,6 +25,8 @@ public class SSH {
     }
     
     public class Session {
+        
+        public var ptyType: PtyType? = nil
         
         private let sock: Socket
         let rawSession: RawSession
@@ -49,6 +60,11 @@ public class SSH {
         @discardableResult
         public func execute(_ command: String, output: ((_ output: String) -> ())? = nil) throws -> Int32 {
             let channel = try rawSession.openChannel()
+            
+            if let ptyType = ptyType {
+                try channel.requestPty(type: ptyType)
+            }
+            
             try channel.exec(command: command)
             
             while true {

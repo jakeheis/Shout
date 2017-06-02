@@ -39,7 +39,7 @@ extension SSH {
                 last = identity
             }
             guard success else {
-                throw Error.authError("Agent failed")
+                throw Error.authError
             }
         }
         
