@@ -61,6 +61,7 @@ public class SSH {
         public func execute(_ command: String) throws -> Int32 {
             return try execute(command, output: { (output) in
                 print(output, terminator: "")
+                fflush(stdout)
             })
         }
         
