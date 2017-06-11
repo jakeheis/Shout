@@ -58,7 +58,21 @@ public class SSH {
         }
         
         @discardableResult
-        public func execute(_ command: String, output: ((_ output: String) -> ())? = nil) throws -> Int32 {
+        public func execute(_ command: String) throws -> Int32 {
+            return try execute(command, output: { (output) in
+                print(output, terminator: "")
+            })
+        }
+        
+        public func capture(_ command: String) throws -> (status: Int32, output: String) {
+            var ongoing = ""
+            let status = try execute(command) { (output) in
+                ongoing += output
+            }
+            return (status, ongoing)
+        }
+        
+        public func execute(_ command: String, output: ((_ output: String) -> ())) throws -> Int32 {
             let channel = try rawSession.openChannel()
             
             if let ptyType = ptyType {
@@ -77,11 +91,7 @@ public class SSH {
                     let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
                         return String(cString: pointer)
                     }
-                    if let output = output {
-                        output(str)
-                    } else {
-                        print(str, terminator: "")
-                    }
+                    output(str)
                 } else {
                     throw LibSSH2Error.error(Int32(bytes))
                 }
@@ -90,14 +100,6 @@ public class SSH {
             try channel.close()
             
             return channel.exitStatus()
-        }
-        
-        public func capture(_ command: String) throws -> (status: Int32, output: String) {
-            var ongoing = ""
-            let status = try execute(command) { (output) in
-                ongoing += output
-            }
-            return (status, ongoing)
         }
         
     }
