@@ -80,7 +80,7 @@ public class SSH {
                     if let output = output {
                         output(str)
                     } else {
-                        print(str)
+                        print(str, terminator: "")
                     }
                 } else {
                     throw LibSSH2Error.error(Int32(bytes))
