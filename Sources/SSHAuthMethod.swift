@@ -69,14 +69,14 @@ extension SSH {
                                                     passphrase: passphrase)
             } else {
                 do {
-                    try Agent().authenticate(username: username, session: session)
-                    return
-                } catch {}
-                do {
                     try session.rawSession.authenticate(username: username,
                                                         privateKey: privateKey,
                                                         publicKey: publicKey,
                                                         passphrase: nil)
+                    return
+                } catch {}
+                do {
+                    try Agent().authenticate(username: username, session: session)
                     return
                 } catch {}
                 let passphrase = String(cString: getpass("Enter passphrase for \(privateKey) (empty for no passphrase):"))
