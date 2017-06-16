@@ -56,7 +56,7 @@ session.authenticateByAgent(username: "user")
 
 ### Executing commands
 
-You can remotely execute a command one of two ways. `server.execute` will print the output of the command to stdout and return the status of the command, while `server.capture` will not print anything to stdout and will return both the status and the output of the command as a string.
+You can remotely execute a command one of two ways. `session.execute` will print the output of the command to stdout and return the status of the command, while `session.capture` will not print anything to stdout and will return both the status and the output of the command as a string.
 ```swift
 let status = try session.execute("ls -a")
 let (status, output) = try session.capture("pwd")
