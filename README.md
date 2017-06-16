@@ -9,3 +9,11 @@ try session.execute("ls -a")
 try session.execute("pwd")
 ...
 ```
+
+## Installation
+Add Shout as a dependency to your project:
+```swift
+dependencies: [
+    .Package(url: "https://github.com/jakeheis/Shout", majorVersion: 0, minor: 1)
+]
+```
