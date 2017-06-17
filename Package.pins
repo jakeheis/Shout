@@ -4,8 +4,8 @@
     {
       "package": "CSSH",
       "reason": null,
-      "repositoryURL": "https://github.com/jakeheis/CSSH",
-      "version": "1.0.2"
+      "repositoryURL": "https://github.com/alexaubry/cssh",
+      "version": "1.0.0"
     },
     {
       "package": "Socket",
