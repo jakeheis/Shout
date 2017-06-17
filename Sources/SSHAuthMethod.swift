@@ -52,9 +52,9 @@ extension SSH {
         public let passphrase: String?
         
         public init(privateKey: String, publicKey: String? = nil, passphrase: String? = nil) {
-            self.privateKey = (privateKey as NSString).expandingTildeInPath
+            self.privateKey = NSString(string: privateKey).expandingTildeInPath
             if let publicKey = publicKey {
-                self.publicKey = (publicKey as NSString).expandingTildeInPath
+                self.publicKey = NSString(string: publicKey).expandingTildeInPath
             } else {
                 self.publicKey = self.privateKey + ".pub"
             }
