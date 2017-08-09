@@ -1,5 +1,5 @@
 import XCTest
-@testable import SSH
+@testable import Shout
 
 class SlushTests: XCTestCase {
 
