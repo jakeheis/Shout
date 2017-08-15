@@ -125,10 +125,10 @@ class RawChannel {
     }
     
     func readData() throws -> (data: Data, bytes: Int) {
-        var data = Data(repeating: 0, count: bufferSize)
+        var data = Data(repeating: 0, count: RawChannel.bufferSize)
         
         let rc: Int = data.withUnsafeMutableBytes { (buffer: UnsafeMutablePointer<Int8>) in
-            return libssh2_channel_read_ex(cChannel, 0, buffer, MemoryLayout<buffer>.size)
+            return libssh2_channel_read_ex(cChannel, 0, buffer, data.count)
         }
         
         if rc < 0 {
