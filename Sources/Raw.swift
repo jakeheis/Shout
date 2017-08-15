@@ -91,6 +91,7 @@ class RawChannel {
     
     private static let windowDefault: UInt32 = 2 * 1024 * 1024
     private static let packetDefault: UInt32 = 32768
+    private static let bufferSize = 0x4000
     
     private let cChannel: OpaquePointer
     
@@ -124,10 +125,10 @@ class RawChannel {
     }
     
     func readData() throws -> (data: Data, bytes: Int) {
-        var data = Data(repeating: 0, count: 0x4000)
+        var data = Data(repeating: 0, count: RawChannel.bufferSize)
         
         let rc: Int = data.withUnsafeMutableBytes { (buffer: UnsafeMutablePointer<Int8>) in
-            return libssh2_channel_read_ex(cChannel, 0, buffer, 0x400)
+            return libssh2_channel_read_ex(cChannel, 0, buffer, data.count)
         }
         
         if rc < 0 {
