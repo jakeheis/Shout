@@ -120,8 +120,7 @@ class RawChannel {
                                                    RawChannel.exec,
                                                    UInt32(RawChannel.exec.characters.count),
                                                    command,
-                                                   UInt32(command.characters.count))    
-        build break!                                                   
+                                                   UInt32(command.characters.count))                                              
         try LibSSH2Error.check(code: code)
     }
     
