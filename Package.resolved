@@ -1,0 +1,25 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "CSSH",
+        "repositoryURL": "https://github.com/jakeheis/CSSH",
+        "state": {
+          "branch": null,
+          "revision": "579a20508ab598f78713a60fed95706efd06bbcb",
+          "version": "1.0.3"
+        }
+      },
+      {
+        "package": "Socket",
+        "repositoryURL": "https://github.com/IBM-Swift/BlueSocket",
+        "state": {
+          "branch": null,
+          "revision": "d42af4542b6d5a0114fc6a4aae479c454b52b64a",
+          "version": "0.12.68"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
