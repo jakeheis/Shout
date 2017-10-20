@@ -11,10 +11,16 @@ try session.execute("pwd")
 ```
 
 ## Installation
-Add Shout as a dependency to your project:
+### [Ice Package Manager](https://github.com/jakeheis/Ice)
+```shell
+> ice add jakeheis/Shout
+```
+### Swift Package Manager
+Add Shout as a dependency to your `Package.swift`:
+
 ```swift
 dependencies: [
-    .Package(url: "https://github.com/jakeheis/Shout", majorVersion: 0, minor: 2)
+    .package(url: "https://github.com/jakeheis/Shout", from: "0.2.0")
 ]
 ```
 
