@@ -39,7 +39,7 @@ extension SSH {
                 last = identity
             }
             guard success else {
-                throw Error.authError
+                throw LibSSH2Error(code: -1, message: "Failed to authenticate using the agent")
             }
         }
         

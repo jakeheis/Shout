@@ -3,10 +3,6 @@ import Socket
 
 public class SSH {
     
-    public enum Error: Swift.Error {
-        case authError
-    }
-    
     public enum PtyType: String {
         case vanilla
         case vt100
@@ -88,14 +84,10 @@ public class SSH {
                     break
                 }
                 
-                if bytes > 0 {
-                    let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
-                        return String(cString: pointer)
-                    }
-                    output(str)
-                } else {
-                    throw LibSSH2Error.error(Int32(bytes))
+                let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
+                    return String(cString: pointer)
                 }
+                output(str)
             }
             
             try channel.close()
