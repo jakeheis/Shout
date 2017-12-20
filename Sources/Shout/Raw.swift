@@ -48,7 +48,7 @@ class RawSession {
     func authenticate(username: String, privateKey: String, publicKey: String, passphrase: String?) throws {
         let code = libssh2_userauth_publickey_fromfile_ex(cSession,
                                                           username,
-                                                          UInt32(username.characters.count),
+                                                          UInt32(username.count),
                                                           publicKey,
                                                           privateKey,
                                                           passphrase)
@@ -58,9 +58,9 @@ class RawSession {
     func authenticate(username: String, password: String) throws {
         let code = libssh2_userauth_password_ex(cSession,
                                                 username,
-                                                UInt32(username.characters.count),
+                                                UInt32(username.count),
                                                 password,
-                                                UInt32(password.characters.count),
+                                                UInt32(password.count),
                                                 nil)
         try LibSSH2Error.check(code: code)
     }
@@ -98,7 +98,7 @@ class RawChannel {
     init(rawSession: RawSession) throws {
         guard let cChannel = libssh2_channel_open_ex(rawSession.cSession,
                                                      RawChannel.session,
-                                                     UInt32(RawChannel.session.characters.count),
+                                                     UInt32(RawChannel.session.count),
                                                      RawChannel.windowDefault,
                                                      RawChannel.packetDefault, nil, 0) else {
                                                         throw LibSSH2Error.initializationError
@@ -118,9 +118,9 @@ class RawChannel {
     func exec(command: String) throws {
         let code = libssh2_channel_process_startup(cChannel,
                                                    RawChannel.exec,
-                                                   UInt32(RawChannel.exec.characters.count),
+                                                   UInt32(RawChannel.exec.count),
                                                    command,
-                                                   UInt32(command.characters.count))
+                                                   UInt32(command.count))
         try LibSSH2Error.check(code: code)
     }
     
