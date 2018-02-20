@@ -4,6 +4,12 @@ import Socket
 
 public struct LibSSH2Error: Swift.Error {
     
+    static func checkOnRead(code: Int32, session: OpaquePointer) throws {
+        if code < 0 {
+            throw LibSSH2Error(code: code, session: session)
+        }
+    }
+    
     static func check(code: Int32, session: OpaquePointer) throws {
         if code != 0 {
             throw LibSSH2Error(code: code, session: session)
@@ -154,7 +160,7 @@ class RawChannel {
             return libssh2_channel_read_ex(cChannel, 0, buffer, data.count)
         }
         
-        try LibSSH2Error.check(code: Int32(rc), session: cSession)
+        try LibSSH2Error.checkOnRead(code: Int32(rc), session: cSession)
         
         return (data, rc)
     }
