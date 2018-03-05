@@ -4,6 +4,7 @@ language: generic
 osx_image: xcode9
 install:
 - eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
+- brew update
 - brew install libssh2
 script:
 - swift build
