@@ -1,5 +1,9 @@
 # Shout
+
+[![Build Status](https://travis-ci.org/jakeheis/Shout.svg?branch=master)](https://travis-ci.org/jakeheis/Shout)
+
 SSH made easy in Swift
+
 ```swift
 import Shout
 
