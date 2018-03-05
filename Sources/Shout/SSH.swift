@@ -1,4 +1,5 @@
 import Foundation
+import Bindings
 import Socket
 
 public class SSH {
@@ -25,15 +26,15 @@ public class SSH {
         public var ptyType: PtyType? = nil
         
         private let sock: Socket
-        let rawSession: RawSession
+        let wrapped: Bindings.Session
         
         public init(host: String, port: Int32 = 22) throws {
             self.sock = try Socket.create()
-            self.rawSession = try RawSession()
+            self.wrapped = try Bindings.Session()
             
-            rawSession.blocking = 1
+            wrapped.blocking = 1
             try sock.connect(to: host, port: port)
-            try rawSession.handshake(over: sock)
+            try wrapped.handshake(over: sock)
         }
         
         public func authenticate(username: String, privateKey: String, publicKey: String? = nil, passphrase: String? = nil) throws {
@@ -70,10 +71,10 @@ public class SSH {
         }
         
         public func execute(_ command: String, output: ((_ output: String) -> ())) throws -> Int32 {
-            let channel = try rawSession.openChannel()
+            let channel = try wrapped.openChannel()
             
             if let ptyType = ptyType {
-                try channel.requestPty(type: ptyType)
+                try channel.requestPty(type: ptyType.rawValue)
             }
             
             try channel.exec(command: command)

@@ -1,4 +1,5 @@
 import Foundation
+import Bindings
 
 public protocol _SSHAuthMethod {
     func authenticate(username: String, session: SSH.Session) throws
@@ -17,7 +18,7 @@ extension SSH {
         }
         
         public func authenticate(username: String, session: Session) throws {
-            try session.rawSession.authenticate(username: username, password: password)
+            try session.wrapped.authenticate(username: username, password: password)
         }
         
     }
@@ -25,11 +26,11 @@ extension SSH {
     public struct Agent: AuthMethod {
         
         public func authenticate(username: String, session: Session) throws {
-            let agent = try session.rawSession.agent()
+            let agent = try session.wrapped.agent()
             try agent.connect()
             try agent.listIdentities()
             
-            var last: RawAgentPublicKey? = nil
+            var last: Bindings.Agent.PublicKey? = nil
             var success: Bool = false
             while let identity = try agent.getIdentity(last: last) {
                 if agent.authenticate(username: username, key: identity) {
@@ -63,13 +64,13 @@ extension SSH {
         
         public func authenticate(username: String, session: Session) throws {
             if let passphrase = passphrase {
-                try session.rawSession.authenticate(username: username,
+                try session.wrapped.authenticate(username: username,
                                                     privateKey: privateKey,
                                                     publicKey: publicKey,
                                                     passphrase: passphrase)
             } else {
                 do {
-                    try session.rawSession.authenticate(username: username,
+                    try session.wrapped.authenticate(username: username,
                                                         privateKey: privateKey,
                                                         publicKey: publicKey,
                                                         passphrase: nil)
@@ -80,7 +81,7 @@ extension SSH {
                     return
                 } catch {}
                 let passphrase = String(cString: getpass("Enter passphrase for \(privateKey) (empty for no passphrase):"))
-                try session.rawSession.authenticate(username: username,
+                try session.wrapped.authenticate(username: username,
                                                     privateKey: privateKey,
                                                     publicKey: publicKey,
                                                     passphrase: passphrase)
