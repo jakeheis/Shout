@@ -27,11 +27,15 @@ public struct LibSSH2Error: Swift.Error {
         }
     }
     
-    public let code: Int32
+    public let rawCode: Int32
     public let message: String
     
+    public var code: Code? {
+        return Code(rawValue: -rawCode)
+    }
+    
     public init(code: Int32, message: String) {
-        self.code = code
+        self.rawCode = code
         self.message = message
     }
     

@@ -31,12 +31,16 @@ public class SSH {
     let session: Bindings.Session
     
     public init(host: String, port: Int32 = 22) throws {
-        self.sock = try Socket.create()
-        self.session = try Bindings.Session()
-        
-        session.blocking = 1
-        try sock.connect(to: host, port: port)
-        try session.handshake(over: sock)
+        do {
+            self.sock = try Socket.create()
+            self.session = try Bindings.Session()
+            
+            session.blocking = 1
+            try sock.connect(to: host, port: port)
+            try session.handshake(over: sock)
+        } catch let error as LibSSH2Error {
+            throw SSHError(libError: error)
+        }
     }
     
     public func authenticate(username: String, privateKey: String, publicKey: String? = nil, passphrase: String? = nil) throws {
@@ -53,7 +57,11 @@ public class SSH {
     }
     
     public func authenticate(username: String, authMethod: SSHAuthMethod) throws {
-        try authMethod.authenticate(ssh: self, username: username)
+        do {
+            try authMethod.authenticate(ssh: self, username: username)
+        } catch let error as LibSSH2Error {
+            throw SSHError(libError: error)
+        }
     }
     
     @discardableResult
@@ -73,29 +81,33 @@ public class SSH {
     }
     
     public func execute(_ command: String, output: ((_ output: String) -> ())) throws -> Int32 {
-        let channel = try session.openChannel()
-        
-        if let ptyType = ptyType {
-            try channel.requestPty(type: ptyType.rawValue)
-        }
-        
-        try channel.exec(command: command)
-        
-        while true {
-            let (data, bytes) = try channel.readData()
-            if bytes == 0 {
-                break
+        do {
+            let channel = try session.openChannel()
+            
+            if let ptyType = ptyType {
+                try channel.requestPty(type: ptyType.rawValue)
             }
             
-            let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
-                return String(cString: pointer)
+            try channel.exec(command: command)
+            
+            while true {
+                let (data, bytes) = try channel.readData()
+                if bytes == 0 {
+                    break
+                }
+                
+                let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
+                    return String(cString: pointer)
+                }
+                output(str)
             }
-            output(str)
+            
+            try channel.close()
+            
+            return channel.exitStatus()
+        } catch let error as LibSSH2Error {
+            throw SSHError(libError: error)
         }
-        
-        try channel.close()
-        
-        return channel.exitStatus()
     }
     
 }
