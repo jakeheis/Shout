@@ -7,10 +7,10 @@ SSH made easy in Swift
 ```swift
 import Shout
 
-let session = try SSH.Session(host: "example.com")
-try session.authenticate(username: "user", privateKey: "~/.ssh/id_rsa")
-try session.execute("ls -a")
-try session.execute("pwd")
+let ssh = try SSH(host: "example.com")
+try ssh.authenticate(username: "user", privateKey: "~/.ssh/id_rsa")
+try ssh.execute("ls -a")
+try ssh.execute("pwd")
 ...
 ```
 
@@ -33,9 +33,9 @@ dependencies: [
 ### Creating a session
 You create a session by passing a host and optionally a port (default 22):
 ```swift
-let session = try SSH.Session(host: "example.com")
+let ssh = try SSH(host: "example.com")
 // or
-let session = try SSH.Session(host: "example.com", port: 22)
+let ssh = try SSH(host: "example.com", port: 22)
 ```
 
 ### Authenticating

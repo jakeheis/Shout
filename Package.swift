@@ -13,7 +13,8 @@ let package = Package(
         .package(url: "https://github.com/jakeheis/CSSH", from: "1.0.3"),
     ],
     targets: [
-        .target(name: "Bindings", dependencies: []),
+        .target(name: "Bindings", dependencies: ["Socket"]),
         .target(name: "Shout", dependencies: ["Bindings", "Socket"]),
+        .testTarget(name: "ShoutTests", dependencies: ["Shout"]),
     ]
 )

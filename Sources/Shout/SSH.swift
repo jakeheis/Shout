@@ -1,5 +1,12 @@
-import Foundation
+//
+//  SSH.swift
+//  Shout
+//
+//  Created by Jake Heiser on 3/4/18.
+//
+
 import Bindings
+import Foundation
 import Socket
 
 public class SSH {
@@ -13,89 +20,101 @@ public class SSH {
         case xterm
     }
     
-    private init() {}
-    
-    public static func connect(host: String, port: Int32 = 22, username: String, authMethod: SSH.AuthMethod, execution: (_ session: Session) throws -> ()) throws {
-        let session = try Session(host: host, port: port)
-        try session.authenticate(username: username, authMethod: authMethod)
-        try execution(session)
+    public static func connect(host: String, port: Int32 = 22, username: String, authMethod: SSHAuthMethod, execution: (_ ssh: SSH) throws -> ()) throws {
+        let ssh = try SSH(host: host, port: port)
+        try ssh.authenticate(username: username, authMethod: authMethod)
+        try execution(ssh)
     }
     
-    public class Session {
+    public var ptyType: PtyType? = nil
+    let sock: Socket
+    let session: Bindings.Session
+    
+    public init(host: String, port: Int32 = 22) throws {
+        self.sock = try Socket.create()
+        self.session = try Bindings.Session()
         
-        public var ptyType: PtyType? = nil
-        
-        private let sock: Socket
-        let wrapped: Bindings.Session
-        
-        public init(host: String, port: Int32 = 22) throws {
-            self.sock = try Socket.create()
-            self.wrapped = try Bindings.Session()
-            
-            wrapped.blocking = 1
-            try sock.connect(to: host, port: port)
-            try wrapped.handshake(over: sock)
-        }
-        
-        public func authenticate(username: String, privateKey: String, publicKey: String? = nil, passphrase: String? = nil) throws {
-            let key = SSH.Key(privateKey: privateKey, publicKey: publicKey, passphrase: passphrase)
-            try authenticate(username: username, authMethod: key)
-        }
-        
-        public func authenticate(username: String, password: String) throws {
-            try authenticate(username: username, authMethod: Password(password))
-        }
-        
-        public func authenticateByAgent(username: String) throws {
-            try authenticate(username: username, authMethod: Agent())
-        }
-        
-        public func authenticate(username: String, authMethod: SSH.AuthMethod) throws {
-            try authMethod.authenticate(username: username, session: self)
-        }
-        
-        @discardableResult
-        public func execute(_ command: String) throws -> Int32 {
-            return try execute(command, output: { (output) in
-                print(output, terminator: "")
-                fflush(stdout)
-            })
-        }
-        
-        public func capture(_ command: String) throws -> (status: Int32, output: String) {
-            var ongoing = ""
-            let status = try execute(command) { (output) in
-                ongoing += output
-            }
-            return (status, ongoing)
-        }
-        
-        public func execute(_ command: String, output: ((_ output: String) -> ())) throws -> Int32 {
-            let channel = try wrapped.openChannel()
-            
-            if let ptyType = ptyType {
-                try channel.requestPty(type: ptyType.rawValue)
-            }
-            
-            try channel.exec(command: command)
-            
-            while true {
-                let (data, bytes) = try channel.readData()
-                if bytes == 0 {
-                    break
-                }
-                
-                let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
-                    return String(cString: pointer)
-                }
-                output(str)
-            }
-            
-            try channel.close()
-            
-            return channel.exitStatus()
-        }
-        
+        session.blocking = 1
+        try sock.connect(to: host, port: port)
+        try session.handshake(over: sock)
     }
     
+    public func authenticate(username: String, privateKey: String, publicKey: String? = nil, passphrase: String? = nil) throws {
+        let key = SSHKey(privateKey: privateKey, publicKey: publicKey, passphrase: passphrase)
+        try authenticate(username: username, authMethod: key)
+    }
+    
+    public func authenticate(username: String, password: String) throws {
+        try authenticate(username: username, authMethod: SSHPassword(password))
+    }
+    
+    public func authenticateByAgent(username: String) throws {
+        try authenticate(username: username, authMethod: SSHAgent())
+    }
+    
+    public func authenticate(username: String, authMethod: SSHAuthMethod) throws {
+        try authMethod.authenticate(ssh: self, username: username)
+    }
+    
+    @discardableResult
+    public func execute(_ command: String) throws -> Int32 {
+        return try execute(command, output: { (output) in
+            print(output, terminator: "")
+            fflush(stdout)
+        })
+    }
+    
+    public func capture(_ command: String) throws -> (status: Int32, output: String) {
+        var ongoing = ""
+        let status = try execute(command) { (output) in
+            ongoing += output
+        }
+        return (status, ongoing)
+    }
+    
+    public func execute(_ command: String, output: ((_ output: String) -> ())) throws -> Int32 {
+        let channel = try session.openChannel()
+        
+        if let ptyType = ptyType {
+            try channel.requestPty(type: ptyType.rawValue)
+        }
+        
+        try channel.exec(command: command)
+        
+        while true {
+            let (data, bytes) = try channel.readData()
+            if bytes == 0 {
+                break
+            }
+            
+            let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
+                return String(cString: pointer)
+            }
+            output(str)
+        }
+        
+        try channel.close()
+        
+        return channel.exitStatus()
+    }
+    
+}
+
+// MARK: - Deprecations
+
+public extension SSH {
+    @available(*, deprecated, message: "SSH.Session has been renamed SSH")
+    public typealias Session = SSH
+    
+    @available(*, deprecated, message: "SSH.AuthMethod has been renamed SSHAuthMethod")
+    public typealias AuthMethod = SSHAuthMethod
+    
+    @available(*, deprecated, message: "SSH.Password has been renamed SSHPassword")
+    public typealias Password = SSHPassword
+    
+    @available(*, deprecated, message: "SSH.Agent has been renamed SSHAgent")
+    public typealias Agent = SSHAgent
+    
+    @available(*, deprecated, message: "SSH.Key has been renamed SSHKey")
+    public typealias Key = SSHKey
 }
