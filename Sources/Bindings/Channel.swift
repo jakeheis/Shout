@@ -54,7 +54,7 @@ public class Channel {
         var data = Data(repeating: 0, count: Channel.bufferSize)
         
         let rc: Int = data.withUnsafeMutableBytes { (buffer: UnsafeMutablePointer<Int8>) in
-            return libssh2_channel_read_ex(cChannel, 0, buffer, data.count)
+            return libssh2_channel_read_ex(cChannel, 0, buffer, Channel.bufferSize)
         }
         
         try LibSSH2Error.checkOnRead(code: Int32(rc), session: cSession)

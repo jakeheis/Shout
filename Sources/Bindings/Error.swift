@@ -43,7 +43,7 @@ public struct LibSSH2Error: Swift.Error {
         var messagePointer: UnsafeMutablePointer<Int8>? = nil
         var length: Int32 = 0
         libssh2_session_last_error(session, &messagePointer, &length, 0)
-        let message = messagePointer == nil ?  "Error" : String(cString: messagePointer!)
+        let message = messagePointer.flatMap({ String.init(cString: $0) }) ?? "Error"
         self.init(code: code, message: message)
     }
     
