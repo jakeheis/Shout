@@ -110,6 +110,9 @@ public class SSH {
         }
     }
     
+    public func openSftp() throws -> SFTP {
+        return try session.openSftp()
+    }
 }
 
 // MARK: - Deprecations

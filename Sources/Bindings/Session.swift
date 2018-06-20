@@ -59,6 +59,10 @@ public class Session {
         try LibSSH2Error.check(code: code, session: cSession)
     }
     
+    public func openSftp() throws -> SFTP  {
+        return try SFTP(cSession: cSession)
+    }
+    
     public func openChannel() throws -> Channel {
         return try Channel(cSession: cSession)
     }
