@@ -72,6 +72,13 @@ let status = try session.execute("ls -a")
 let (status, output) = try session.capture("pwd")
 ```
 
+### Send files
+
+You can send a local file to a remote path, similar to the `scp` command line program, with `sendFile`.
+```swift
+let status = try session.sendFile(localURL: myLocalFile, remotePath: "~/cats.png")
+```
+
 ### Configuration
 
 You can instruct the session to request a pty (pseudo terminal) before executing commands:

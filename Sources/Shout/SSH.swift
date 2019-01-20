@@ -112,6 +112,12 @@ public class SSH {
     public func openSftp() throws -> SFTP {
         return try session.openSftp()
     }
+
+    public func sendFile(localURL: URL, remotePath: String, permissions: FilePermissions = .default) throws -> Int32 {
+        let channel = try session.openSCPChannel(localURL: localURL, remotePath: remotePath, permissions: permissions)
+        try channel.sendFile()
+        return channel.exitStatus()
+    }
 }
 
 // MARK: - Deprecations
