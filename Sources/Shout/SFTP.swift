@@ -22,13 +22,13 @@ public class SFTP {
         libssh2_sftp_shutdown(sftpSession)
     }
     
-    public func upload(localUrl: URL, remotePath: String, permissions: FilePermissions = FilePermissions.defaultPermissions) throws {
+    public func upload(localUrl: URL, remotePath: String, permissions: FilePermissions = .default) throws {
         guard let sftpHandle = libssh2_sftp_open_ex(
             sftpSession,
             remotePath,
             UInt32(remotePath.count),
             UInt(LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT),
-            Int(LIBSSH2_SFTP_S_IFREG | FilePermissions.libsshPermissionFlag(permissions)),
+            Int(LIBSSH2_SFTP_S_IFREG | permissions.rawValue),
             LIBSSH2_SFTP_OPENFILE) else
         {
             throw LibSSH2Error(code: -1, message: "libssh2_sftp_open_ex failed")

@@ -19,7 +19,7 @@ public struct Permissions : OptionSet {
     public static let execute = Permissions(rawValue: 1 << 3)
 }
 
-public struct FilePermissions {
+public struct FilePermissions: RawRepresentable {
     public var owner: Permissions
     public var group: Permissions
     public var others: Permissions
@@ -29,37 +29,43 @@ public struct FilePermissions {
         self.group = group
         self.others = others
     }
-    
-    public static func fromPosixPermissions(_ value: CShort) -> FilePermissions {
-        var permissions = FilePermissions(owner: [], group: [], others: [])
-        if (value & CShort(S_IRUSR) == CShort(S_IRUSR)) { permissions.owner.insert(.read) }
-        if (value & CShort(S_IWUSR) == CShort(S_IWUSR)) { permissions.owner.insert(.write) }
-        if (value & CShort(S_IXUSR) == CShort(S_IXUSR)) { permissions.owner.insert(.execute) }
-        if (value & CShort(S_IRGRP) == CShort(S_IRGRP)) { permissions.group.insert(.read) }
-        if (value & CShort(S_IWGRP) == CShort(S_IWGRP)) { permissions.group.insert(.write) }
-        if (value & CShort(S_IXGRP) == CShort(S_IXGRP)) { permissions.group.insert(.execute) }
-        if (value & CShort(S_IROTH) == CShort(S_IROTH)) { permissions.others.insert(.read) }
-        if (value & CShort(S_IWOTH) == CShort(S_IWOTH)) { permissions.others.insert(.write) }
-        if (value & CShort(S_IXOTH) == CShort(S_IXOTH)) { permissions.others.insert(.execute) }
-        return permissions
-    }
-    
-    public static let defaultPermissions = FilePermissions(owner: [.read, .write], group: [.read], others: [.read])
 
-    public static func libsshPermissionFlag(_ permissions: FilePermissions) -> Int32 {
+    public init(rawValue: Int32) {
+        var owner: Permissions = []
+        var group: Permissions = []
+        var others: Permissions = []
+
+        if (rawValue & LIBSSH2_SFTP_S_IRUSR == LIBSSH2_SFTP_S_IRUSR) { owner.insert(.read) }
+        if (rawValue & LIBSSH2_SFTP_S_IWUSR == LIBSSH2_SFTP_S_IWUSR) { owner.insert(.write) }
+        if (rawValue & LIBSSH2_SFTP_S_IXUSR == LIBSSH2_SFTP_S_IXUSR) { owner.insert(.execute) }
+        if (rawValue & LIBSSH2_SFTP_S_IRGRP == LIBSSH2_SFTP_S_IRGRP) { group.insert(.read) }
+        if (rawValue & LIBSSH2_SFTP_S_IWGRP == LIBSSH2_SFTP_S_IWGRP) { group.insert(.write) }
+        if (rawValue & LIBSSH2_SFTP_S_IXGRP == LIBSSH2_SFTP_S_IXGRP) { group.insert(.execute) }
+        if (rawValue & LIBSSH2_SFTP_S_IROTH == LIBSSH2_SFTP_S_IROTH) { others.insert(.read) }
+        if (rawValue & LIBSSH2_SFTP_S_IWOTH == LIBSSH2_SFTP_S_IWOTH) { others.insert(.write) }
+        if (rawValue & LIBSSH2_SFTP_S_IXOTH == LIBSSH2_SFTP_S_IXOTH) { others.insert(.execute) }
+
+        self.init(owner: owner, group: group, others: others)
+    }
+
+    public var rawValue: Int32 {
         var flag: Int32 = 0
-        if permissions.owner.contains(.read) { flag |= LIBSSH2_SFTP_S_IRUSR }
-        if permissions.owner.contains(.write) { flag |= LIBSSH2_SFTP_S_IWUSR }
-        if permissions.owner.contains(.execute) { flag |= LIBSSH2_SFTP_S_IXUSR }
+
+        if owner.contains(.read) { flag |= LIBSSH2_SFTP_S_IRUSR }
+        if owner.contains(.write) { flag |= LIBSSH2_SFTP_S_IWUSR }
+        if owner.contains(.execute) { flag |= LIBSSH2_SFTP_S_IXUSR }
         
-        if permissions.group.contains(.read) { flag |= LIBSSH2_SFTP_S_IRGRP }
-        if permissions.group.contains(.write) { flag |= LIBSSH2_SFTP_S_IWGRP }
-        if permissions.group.contains(.execute) { flag |= LIBSSH2_SFTP_S_IXGRP }
+        if group.contains(.read) { flag |= LIBSSH2_SFTP_S_IRGRP }
+        if group.contains(.write) { flag |= LIBSSH2_SFTP_S_IWGRP }
+        if group.contains(.execute) { flag |= LIBSSH2_SFTP_S_IXGRP }
         
-        if permissions.others.contains(.read) { flag |= LIBSSH2_SFTP_S_IROTH }
-        if permissions.others.contains(.write) { flag |= LIBSSH2_SFTP_S_IWOTH }
-        if permissions.others.contains(.execute) { flag |= LIBSSH2_SFTP_S_IXOTH }
+        if others.contains(.read) { flag |= LIBSSH2_SFTP_S_IROTH }
+        if others.contains(.write) { flag |= LIBSSH2_SFTP_S_IWOTH }
+        if others.contains(.execute) { flag |= LIBSSH2_SFTP_S_IXOTH }
         
         return flag
     }
+
+    public static let `default` = FilePermissions(owner: [.read, .write], group: [.read], others: [.read])
+
 }
