@@ -5,7 +5,6 @@
 //  Created by Jake Heiser on 3/4/18.
 //
 
-import Bindings
 import Foundation
 import Socket
 
@@ -28,12 +27,12 @@ public class SSH {
     
     public var ptyType: PtyType? = nil
     let sock: Socket
-    let session: Bindings.Session
+    let session: Shout.Session
     
     public init(host: String, port: Int32 = 22) throws {
         do {
             self.sock = try Socket.create()
-            self.session = try Bindings.Session()
+            self.session = try Shout.Session()
             
             session.blocking = 1
             try sock.connect(to: host, port: port)

@@ -1,19 +1,19 @@
 //
 //  Agent.swift
-//  Bindings
+//  Shout
 //
 //  Created by Jake Heiser on 3/4/18.
 //
 
 import CSSH
 
-public class Agent {
+class Agent {
     
-    public class PublicKey: CustomStringConvertible {
+    class PublicKey: CustomStringConvertible {
         
         fileprivate let cIdentity: UnsafeMutablePointer<libssh2_agent_publickey>
         
-        public var description: String {
+        var description: String {
             return "Public key: " + String(cString: cIdentity.pointee.comment)
         }
         
@@ -34,17 +34,17 @@ public class Agent {
         self.cAgent = cAgent
     }
     
-    public func connect() throws {
+    func connect() throws {
         let code = libssh2_agent_connect(cAgent)
         try LibSSH2Error.check(code: code, session: cSession)
     }
     
-    public func listIdentities() throws {
+    func listIdentities() throws {
         let code = libssh2_agent_list_identities(cAgent)
         try LibSSH2Error.check(code: code, session: cSession)
     }
     
-    public func getIdentity(last: PublicKey?) throws -> PublicKey? {
+    func getIdentity(last: PublicKey?) throws -> PublicKey? {
         var publicKeyOptional: UnsafeMutablePointer<libssh2_agent_publickey>? = nil
         let code = libssh2_agent_get_identity(cAgent, UnsafeMutablePointer(mutating: &publicKeyOptional), last?.cIdentity)
         
@@ -61,7 +61,7 @@ public class Agent {
         return PublicKey(cIdentity: publicKey)
     }
     
-    public func authenticate(username: String, key: PublicKey) -> Bool {
+    func authenticate(username: String, key: PublicKey) -> Bool {
         let code = libssh2_agent_userauth(cAgent, username, key.cIdentity)
         return code == 0
     }

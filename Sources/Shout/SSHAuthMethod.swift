@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Bindings
 
 public protocol SSHAuthMethod {
     func authenticate(ssh: SSH, username: String) throws
@@ -35,7 +34,7 @@ public struct SSHAgent: SSHAuthMethod {
         try agent.connect()
         try agent.listIdentities()
         
-        var last: Bindings.Agent.PublicKey? = nil
+        var last: Agent.PublicKey? = nil
         var success: Bool = false
         while let identity = try agent.getIdentity(last: last) {
             if agent.authenticate(username: username, key: identity) {

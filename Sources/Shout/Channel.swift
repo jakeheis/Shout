@@ -1,6 +1,6 @@
 //
 //  Channel.swift
-//  Bindings
+//  Shout
 //
 //  Created by Jake Heiser on 3/4/18.
 //
@@ -8,7 +8,7 @@
 import CSSH
 import struct Foundation.Data
 
-public class Channel {
+class Channel {
     
     private static let session = "session"
     private static let exec = "exec"
@@ -32,7 +32,7 @@ public class Channel {
         self.cChannel = cChannel
     }
     
-    public func requestPty(type: String) throws {
+    func requestPty(type: String) throws {
         let code = libssh2_channel_request_pty_ex(cChannel,
                                                   type, UInt32(type.utf8.count),
                                                   nil, 0,
@@ -41,7 +41,7 @@ public class Channel {
         try LibSSH2Error.check(code: code, session: cSession)
     }
     
-    public func exec(command: String) throws {
+    func exec(command: String) throws {
         let code = libssh2_channel_process_startup(cChannel,
                                                    Channel.exec,
                                                    UInt32(Channel.exec.count),
@@ -50,7 +50,7 @@ public class Channel {
         try LibSSH2Error.check(code: code, session: cSession)
     }
     
-    public func readData() throws -> (data: Data, bytes: Int) {
+    func readData() throws -> (data: Data, bytes: Int) {
         var data = Data(repeating: 0, count: Channel.bufferSize)
         
         let rc: Int = data.withUnsafeMutableBytes { (buffer: UnsafeMutablePointer<Int8>) in
@@ -62,17 +62,17 @@ public class Channel {
         return (data, rc)
     }
     
-    public func close() throws {
+    func close() throws {
         let code = libssh2_channel_close(cChannel)
         try LibSSH2Error.check(code: code, session: cSession)
     }
     
-    public func waitClosed() throws {
+    func waitClosed() throws {
         let code2 = libssh2_channel_wait_closed(cChannel)
         try LibSSH2Error.check(code: code2, session: cSession)
     }
     
-    public func exitStatus() -> Int32 {
+    func exitStatus() -> Int32 {
         return libssh2_channel_get_exit_status(cChannel)
     }
     
