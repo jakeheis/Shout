@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import Shout
+import Shout
 
 class ShoutTests: XCTestCase {
     
