@@ -35,15 +35,15 @@ public class SFTP {
         
         public static func fromPosixPermissions(_ value: CShort) -> FilePermissions {
             var permissions = FilePermissions(owner: [], group: [], others: [])
-            if (value & CShort(S_IRUSR) == CShort(S_IRUSR)) { permissions.owner.insert(.read) }
-            if (value & CShort(S_IWUSR) == CShort(S_IWUSR)) { permissions.owner.insert(.write) }
-            if (value & CShort(S_IXUSR) == CShort(S_IXUSR)) { permissions.owner.insert(.execute) }
-            if (value & CShort(S_IRGRP) == CShort(S_IRGRP)) { permissions.group.insert(.read) }
-            if (value & CShort(S_IWGRP) == CShort(S_IWGRP)) { permissions.group.insert(.write) }
-            if (value & CShort(S_IXGRP) == CShort(S_IXGRP)) { permissions.group.insert(.execute) }
-            if (value & CShort(S_IROTH) == CShort(S_IROTH)) { permissions.others.insert(.read) }
-            if (value & CShort(S_IWOTH) == CShort(S_IWOTH)) { permissions.others.insert(.write) }
-            if (value & CShort(S_IXOTH) == CShort(S_IXOTH)) { permissions.others.insert(.execute) }
+            if (value & CShort(Foundation.S_IRUSR) == CShort(Foundation.S_IRUSR)) { permissions.owner.insert(.read) }
+            if (value & CShort(Foundation.S_IWUSR) == CShort(Foundation.S_IWUSR)) { permissions.owner.insert(.write) }
+            if (value & CShort(Foundation.S_IXUSR) == CShort(Foundation.S_IXUSR)) { permissions.owner.insert(.execute) }
+            if (value & CShort(Foundation.S_IRGRP) == CShort(Foundation.S_IRGRP)) { permissions.group.insert(.read) }
+            if (value & CShort(Foundation.S_IWGRP) == CShort(Foundation.S_IWGRP)) { permissions.group.insert(.write) }
+            if (value & CShort(Foundation.S_IXGRP) == CShort(Foundation.S_IXGRP)) { permissions.group.insert(.execute) }
+            if (value & CShort(Foundation.S_IROTH) == CShort(Foundation.S_IROTH)) { permissions.others.insert(.read) }
+            if (value & CShort(Foundation.S_IWOTH) == CShort(Foundation.S_IWOTH)) { permissions.others.insert(.write) }
+            if (value & CShort(Foundation.S_IXOTH) == CShort(Foundation.S_IXOTH)) { permissions.others.insert(.execute) }
             return permissions
         }
         
