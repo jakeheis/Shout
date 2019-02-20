@@ -1,5 +1,4 @@
-// swift-tools-version:4.0
-// Managed by ice
+// swift-tools-version:4.2
 
 import PackageDescription
 
@@ -10,10 +9,10 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/IBM-Swift/BlueSocket", from: "0.12.68"),
-        .package(url: "https://github.com/jakeheis/CSSH", from: "1.0.3"),
     ],
     targets: [
-        .target(name: "Bindings", dependencies: ["Socket"]),
+        .systemLibrary(name: "CSSH", pkgConfig: "libssh2"),
+        .target(name: "Bindings", dependencies: ["Socket", "CSSH"]),
         .target(name: "Shout", dependencies: ["Bindings", "Socket"]),
         .testTarget(name: "ShoutTests", dependencies: ["Shout"]),
     ]
