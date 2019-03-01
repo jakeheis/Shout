@@ -1,6 +1,6 @@
 //
 //  Session.swift
-//  Bindings
+//  Shout
 //
 //  Created by Jake Heiser on 3/4/18.
 //
@@ -8,14 +8,14 @@
 import CSSH
 import Socket
 
-public class Session {
+class Session {
     
     private static let initResult = libssh2_init(0)
     
     private let cSession: OpaquePointer
     private var _agent: Agent?
     
-    public var blocking: Int32 {
+    var blocking: Int32 {
         get {
             return libssh2_session_get_blocking(cSession)
         }
@@ -24,7 +24,7 @@ public class Session {
         }
     }
     
-    public init() throws {
+    init() throws {
         try LibSSH2Error.check(code: Session.initResult, message: "libssh2_init failed")
         
         guard let cSession = libssh2_session_init_ex(nil, nil, nil, nil) else {
@@ -34,12 +34,12 @@ public class Session {
         self.cSession = cSession
     }
     
-    public func handshake(over socket: Socket) throws {
+    func handshake(over socket: Socket) throws {
         let code = libssh2_session_handshake(cSession, socket.socketfd)
         try LibSSH2Error.check(code: code, session: cSession)
     }
     
-    public func authenticate(username: String, privateKey: String, publicKey: String, passphrase: String?) throws {
+    func authenticate(username: String, privateKey: String, publicKey: String, passphrase: String?) throws {
         let code = libssh2_userauth_publickey_fromfile_ex(cSession,
                                                           username,
                                                           UInt32(username.count),
@@ -49,7 +49,7 @@ public class Session {
         try LibSSH2Error.check(code: code, session: cSession)
     }
     
-    public func authenticate(username: String, password: String) throws {
+    func authenticate(username: String, password: String) throws {
         let code = libssh2_userauth_password_ex(cSession,
                                                 username,
                                                 UInt32(username.count),
@@ -59,15 +59,15 @@ public class Session {
         try LibSSH2Error.check(code: code, session: cSession)
     }
     
-    public func openSftp() throws -> SFTP  {
+    func openSftp() throws -> SFTP  {
         return try SFTP(cSession: cSession)
     }
     
-    public func openChannel() throws -> Channel {
+    func openChannel() throws -> Channel {
         return try Channel(cSession: cSession)
     }
     
-    public func agent() throws -> Agent {
+    func agent() throws -> Agent {
         if let agent = _agent {
             return agent
         }

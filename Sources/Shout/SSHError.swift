@@ -5,8 +5,6 @@
 //  Created by Jake Heiser on 3/6/18.
 //
 
-import Bindings
-
 public struct SSHError: Swift.Error, CustomStringConvertible {
     
     private let libError: LibSSH2Error
