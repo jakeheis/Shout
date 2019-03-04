@@ -69,6 +69,8 @@ public class SFTP {
         {
             throw LibSSH2Error(code: -1, message: "libssh2_sftp_open_ex failed")
         }
+
+        defer { libssh2_sftp_close_handle(sftpHandle) }
         
         let data = try Data(contentsOf: localUrl, options: .alwaysMapped)
         
@@ -87,6 +89,5 @@ public class SFTP {
                 offset += bytesSent
             }
         }
-        libssh2_sftp_close_handle(sftpHandle)
     }
 }
