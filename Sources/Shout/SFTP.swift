@@ -11,6 +11,10 @@ import CSSH
 public class SFTP {
     private let sftpSession: OpaquePointer
     
+    // Recommended buffer size accordingly to the docs:
+    // https://www.libssh2.org/libssh2_sftp_write.html
+    private static let bufferSize = 32768
+        
     public init(cSession: OpaquePointer) throws {
         guard let sftpSession = libssh2_sftp_init(cSession) else {
             throw LibSSH2Error(code: -1, message: "libssh2_sftp_init failed")
@@ -34,15 +38,11 @@ public class SFTP {
             throw LibSSH2Error(code: -1, message: "libssh2_sftp_open_ex failed")
         }
         
-        // Recommended buffer size accordingly to the docs:
-        // https://www.libssh2.org/libssh2_sftp_write.html
-        let bufferSize = 32768
-        
         let data = try Data(contentsOf: localUrl, options: .alwaysMapped)
         
         var offset = 0
         while offset < data.count {
-            let upTo = Swift.min(offset + bufferSize, data.count)
+            let upTo = Swift.min(offset + SFTP.bufferSize, data.count)
             let subdata = data.subdata(in: offset ..< upTo)
             if subdata.count > 0 {
                 let bytesSent = try subdata.withUnsafeBytes { (pointer: UnsafePointer<Int8>) -> Int in
@@ -57,5 +57,4 @@ public class SFTP {
         }
         libssh2_sftp_close_handle(sftpHandle)
     }
-    
 }
