@@ -25,6 +25,38 @@ public class SFTP {
     deinit {
         libssh2_sftp_shutdown(sftpSession)
     }
+
+    public func download(remotePath: String, localUrl: URL) throws {
+        guard let sftpHandle = libssh2_sftp_open_ex(
+            sftpSession,
+            remotePath,
+            UInt32(remotePath.count),
+            UInt(LIBSSH2_FXF_READ),
+            0,
+            LIBSSH2_SFTP_OPENFILE) else
+        {
+            throw LibSSH2Error(code: -1, message: "libssh2_sftp_open_ex failed")
+        }
+
+        defer { libssh2_sftp_close_handle(sftpHandle) }
+        
+        FileManager.default.createFile(atPath: localUrl.path, contents: nil, attributes: nil)
+        let fileHandle = try FileHandle(forWritingTo: localUrl)
+        defer { fileHandle.closeFile() }
+
+        var buffer = Array<Int8>(repeating: 0, count: SFTP.bufferSize)
+
+        var codeOrBytesReceived: Int
+        repeat {
+            codeOrBytesReceived = libssh2_sftp_read(sftpHandle, &buffer, SFTP.bufferSize)
+            if codeOrBytesReceived < 0 && codeOrBytesReceived != Int(LIBSSH2_ERROR_EAGAIN) {
+                throw LibSSH2Error(code: Int32(codeOrBytesReceived), message: "libssh2_sftp_read failed")
+            }
+            
+            let data = Data(buffer: UnsafeBufferPointer(start: &buffer, count: codeOrBytesReceived))
+            fileHandle.write(data)
+        } while codeOrBytesReceived > 0
+    }
     
     public func upload(localUrl: URL, remotePath: String, permissions: FilePermissions = .default) throws {
         guard let sftpHandle = libssh2_sftp_open_ex(
