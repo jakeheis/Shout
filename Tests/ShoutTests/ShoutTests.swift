@@ -32,6 +32,15 @@ class ShoutTests: XCTestCase {
             print(try ssh.capture("pwd"))
         }
     }
+        
+    func testDownload() throws {
+        try SSH.connect(host: ShoutTests.testHost, username: ShoutTests.username, authMethod: authMethod) { (ssh) in
+            let sftp = try ssh.openSftp()
+            let destinationUrl = URL(fileURLWithPath: "/tmp/existing_file.swift")
+            try sftp.download(remotePath: "/tmp/download_test.swift", localUrl: destinationUrl)
+            XCTAssert(FileManager.default.fileExists(atPath: destinationUrl.path))
+        }
+    }
     
     func testUpload() throws {
         try SSH.connect(host: ShoutTests.testHost, username: ShoutTests.username, authMethod: authMethod) { (ssh) in
@@ -55,6 +64,7 @@ class ShoutTests: XCTestCase {
     static var allTests = [
         ("testCapture", testCapture),
         ("testConnect", testConnect),
+        ("testDownload", testDownload),
         ("testUpload", testUpload),
         ("testSendFile", testSendFile),
     ]
