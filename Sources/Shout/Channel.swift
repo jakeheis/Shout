@@ -7,6 +7,7 @@
 
 import CSSH
 import struct Foundation.Data
+import struct Foundation.URL
 
 class Channel {
     
@@ -14,20 +15,31 @@ class Channel {
     private static let exec = "exec"
     
     private static let windowDefault: UInt32 = 2 * 1024 * 1024
-    private static let packetDefault: UInt32 = 32768
-    private static let bufferSize = 0x4000
+    static let packetDefaultSize: UInt32 = 32768
     
     private let cSession: OpaquePointer
     private let cChannel: OpaquePointer
     
-    init(cSession: OpaquePointer) throws {
+    static func createForCommand(cSession: OpaquePointer) throws -> Channel {
         guard let cChannel = libssh2_channel_open_ex(cSession,
                                                      Channel.session,
                                                      UInt32(Channel.session.count),
                                                      Channel.windowDefault,
-                                                     Channel.packetDefault, nil, 0) else {
-                                                        throw LibSSH2Error(code: -1, session: cSession)
+                                                     Channel.packetDefaultSize, nil, 0) else {
+            throw SSHError.mostRecentError(session: cSession, backupMessage: "libssh2_channel_open_ex failed")
         }
+        return Channel(cSession: cSession, cChannel: cChannel)
+    }
+    
+    static func createForSCP(cSession: OpaquePointer, fileSize: Int64, remotePath: String, permissions: FilePermissions) throws -> Channel {
+        guard let cChannel = libssh2_scp_send64(cSession, remotePath, permissions.rawValue, fileSize, 0, 0) else {
+            throw SSHError.mostRecentError(session: cSession, backupMessage: "libssh2_scp_send64 failed")
+        }
+        
+        return Channel(cSession: cSession, cChannel: cChannel)
+    }
+    
+    private init(cSession: OpaquePointer, cChannel: OpaquePointer) {
         self.cSession = cSession
         self.cChannel = cChannel
     }
@@ -38,7 +50,7 @@ class Channel {
                                                   nil, 0,
                                                   LIBSSH2_TERM_WIDTH, LIBSSH2_TERM_HEIGHT,
                                                   LIBSSH2_TERM_WIDTH_PX, LIBSSH2_TERM_WIDTH_PX)
-        try LibSSH2Error.check(code: code, session: cSession)
+        try SSHError.check(code: code, session: cSession)
     }
     
     func exec(command: String) throws {
@@ -47,29 +59,52 @@ class Channel {
                                                    UInt32(Channel.exec.count),
                                                    command,
                                                    UInt32(command.count))
-        try LibSSH2Error.check(code: code, session: cSession)
+        try SSHError.check(code: code, session: cSession)
     }
     
     func readData() throws -> (data: Data, bytes: Int) {
-        var data = Data(repeating: 0, count: Channel.bufferSize)
+        let bufferSize = 0x4000
         
-        let rc: Int = data.withUnsafeMutableBytes { (buffer: UnsafeMutablePointer<Int8>) in
-            return libssh2_channel_read_ex(cChannel, 0, buffer, Channel.bufferSize)
+        var data = Data(capacity: bufferSize)
+        
+        let bytesRead: Int = data.withUnsafeMutableBytes { (buffer: UnsafeMutablePointer<Int8>) in
+            return libssh2_channel_read_ex(cChannel, 0, buffer, bufferSize)
         }
         
-        try LibSSH2Error.checkOnRead(code: Int32(rc), session: cSession)
+        if bytesRead < 0 {
+            try SSHError.check(code: Int32(bytesRead), session: cSession)
+        }
         
-        return (data, rc)
+        return (data, bytesRead)
+    }
+    
+    func write(data: Data, length: Int, to stream: Int32 = 0) throws {
+        let bytesWritten = data.withUnsafeBytes { (bytes) in
+            libssh2_channel_write_ex(cChannel, stream, bytes, length)
+        }
+        if bytesWritten < 0 {
+            try SSHError.check(code: Int32(bytesWritten), session: cSession)
+        }
+    }
+    
+    func sendEOF() throws {
+        let code = libssh2_channel_send_eof(cChannel)
+        try SSHError.check(code: code, session: cSession)
+    }
+    
+    func waitEOF() throws {
+        let code = libssh2_channel_wait_eof(cChannel)
+        try SSHError.check(code: code, session: cSession)
     }
     
     func close() throws {
         let code = libssh2_channel_close(cChannel)
-        try LibSSH2Error.check(code: code, session: cSession)
+        try SSHError.check(code: code, session: cSession)
     }
     
     func waitClosed() throws {
-        let code2 = libssh2_channel_wait_closed(cChannel)
-        try LibSSH2Error.check(code: code2, session: cSession)
+        let code = libssh2_channel_wait_closed(cChannel)
+        try SSHError.check(code: code, session: cSession)
     }
     
     func exitStatus() -> Int32 {

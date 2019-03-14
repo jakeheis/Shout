@@ -9,16 +9,19 @@ import Foundation
 import CSSH
 
 public class SFTP {
-    private let sftpSession: OpaquePointer
     
     // Recommended buffer size accordingly to the docs:
     // https://www.libssh2.org/libssh2_sftp_write.html
     private static let bufferSize = 32768
+    
+    private let cSession: OpaquePointer
+    private let sftpSession: OpaquePointer
         
     public init(cSession: OpaquePointer) throws {
         guard let sftpSession = libssh2_sftp_init(cSession) else {
-            throw LibSSH2Error(code: -1, message: "libssh2_sftp_init failed")
+            throw SSHError.mostRecentError(session: cSession, backupMessage: "libssh2_sftp_init failed")
         }
+        self.cSession = cSession
         self.sftpSession = sftpSession
     }
     
@@ -33,9 +36,8 @@ public class SFTP {
             UInt32(remotePath.count),
             UInt(LIBSSH2_FXF_READ),
             0,
-            LIBSSH2_SFTP_OPENFILE) else
-        {
-            throw LibSSH2Error(code: -1, message: "libssh2_sftp_open_ex failed")
+            LIBSSH2_SFTP_OPENFILE) else {
+                throw SSHError.mostRecentError(session: cSession, backupMessage: "libssh2_sftp_open_ex failed")
         }
 
         defer { libssh2_sftp_close_handle(sftpHandle) }
@@ -50,7 +52,7 @@ public class SFTP {
         repeat {
             codeOrBytesReceived = libssh2_sftp_read(sftpHandle, &buffer, SFTP.bufferSize)
             if codeOrBytesReceived < 0 && codeOrBytesReceived != Int(LIBSSH2_ERROR_EAGAIN) {
-                throw LibSSH2Error(code: Int32(codeOrBytesReceived), message: "libssh2_sftp_read failed")
+                try SSHError.check(code: Int32(codeOrBytesReceived), session: cSession)
             }
             
             let data = Data(buffer: UnsafeBufferPointer(start: &buffer, count: codeOrBytesReceived))
@@ -67,7 +69,7 @@ public class SFTP {
             Int(LIBSSH2_SFTP_S_IFREG | permissions.rawValue),
             LIBSSH2_SFTP_OPENFILE) else
         {
-            throw LibSSH2Error(code: -1, message: "libssh2_sftp_open_ex failed")
+            throw SSHError.mostRecentError(session: cSession, backupMessage: "libssh2_sftp_open_ex failed")
         }
 
         defer { libssh2_sftp_close_handle(sftpHandle) }
@@ -82,7 +84,7 @@ public class SFTP {
                 let bytesSent = try subdata.withUnsafeBytes { (pointer: UnsafePointer<Int8>) -> Int in
                     let codeOrBytesSent = libssh2_sftp_write(sftpHandle, pointer, subdata.count)
                     if codeOrBytesSent < 0 && codeOrBytesSent != Int(LIBSSH2_ERROR_EAGAIN) {
-                        throw LibSSH2Error(code: Int32(codeOrBytesSent), message: "libssh2_sftp_write failed")
+                        try SSHError.check(code: Int32(codeOrBytesSent), session: cSession)
                     }
                     return codeOrBytesSent
                 }

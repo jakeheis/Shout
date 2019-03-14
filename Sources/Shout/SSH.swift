@@ -25,21 +25,18 @@ public class SSH {
         try execution(ssh)
     }
     
+    let session: Session
+    private let sock: Socket
+    
     public var ptyType: PtyType? = nil
-    let sock: Socket
-    let session: Shout.Session
     
     public init(host: String, port: Int32 = 22) throws {
-        do {
-            self.sock = try Socket.create()
-            self.session = try Shout.Session()
-            
-            session.blocking = 1
-            try sock.connect(to: host, port: port)
-            try session.handshake(over: sock)
-        } catch let error as LibSSH2Error {
-            throw SSHError(libError: error)
-        }
+        self.sock = try Socket.create()
+        self.session = try Session()
+        
+        session.blocking = 1
+        try sock.connect(to: host, port: port)
+        try session.handshake(over: sock)
     }
     
     public func authenticate(username: String, privateKey: String, publicKey: String? = nil, passphrase: String? = nil) throws {
@@ -56,11 +53,7 @@ public class SSH {
     }
     
     public func authenticate(username: String, authMethod: SSHAuthMethod) throws {
-        do {
-            try authMethod.authenticate(ssh: self, username: username)
-        } catch let error as LibSSH2Error {
-            throw SSHError(libError: error)
-        }
+        try authMethod.authenticate(ssh: self, username: username)
     }
     
     @discardableResult
@@ -80,61 +73,65 @@ public class SSH {
     }
     
     public func execute(_ command: String, output: ((_ output: String) -> ())) throws -> Int32 {
-        do {
-            let channel = try session.openChannel()
-            
-            if let ptyType = ptyType {
-                try channel.requestPty(type: ptyType.rawValue)
-            }
-            
-            try channel.exec(command: command)
-            
-            while true {
-                let (data, bytes) = try channel.readData()
-                if bytes == 0 {
-                    break
-                }
-                
-                let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
-                    return String(cString: pointer)
-                }
-                output(str)
-            }
-            
-            try channel.close()
-            
-            return channel.exitStatus()
-        } catch let error as LibSSH2Error {
-            throw SSHError(libError: error)
+        let channel = try session.openCommandChannel()
+        
+        if let ptyType = ptyType {
+            try channel.requestPty(type: ptyType.rawValue)
         }
+        
+        try channel.exec(command: command)
+        
+        while true {
+            let (data, bytes) = try channel.readData()
+            if bytes == 0 {
+                break
+            }
+            
+            let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
+                return String(cString: pointer)
+            }
+            output(str)
+        }
+        
+        try channel.close()
+        
+        return channel.exitStatus()
+    }
+    
+    public func sendFile(localURL: URL, remotePath: String, permissions: FilePermissions = .default) throws -> Int32 {
+        guard let resources = try? localURL.resourceValues(forKeys: [.fileSizeKey]),
+            let fileSize = resources.fileSize,
+            let inputStream = InputStream(url: localURL) else {
+                throw SSHError.genericError("couldn't open file at \(localURL)")
+        }
+        
+        let channel = try session.openSCPChannel(fileSize: Int64(fileSize), remotePath: remotePath, permissions: permissions)
+        
+        inputStream.open()
+        defer { inputStream.close() }
+        
+        let bufferSize = Int(Channel.packetDefaultSize)
+        var buffer = Data(capacity: bufferSize)
+        
+        while inputStream.hasBytesAvailable {
+            let bytesRead = buffer.withUnsafeMutableBytes { data in
+                inputStream.read(data, maxLength: bufferSize)
+            }
+            if bytesRead == 0 { break }
+            
+            try channel.write(data: buffer, length: bytesRead)
+        }
+        
+        try channel.sendEOF()
+        try channel.waitEOF()
+        try channel.close()
+        try channel.waitClosed()
+        
+        return channel.exitStatus()
     }
     
     public func openSftp() throws -> SFTP {
         return try session.openSftp()
     }
-
-    public func sendFile(localURL: URL, remotePath: String, permissions: FilePermissions = .default) throws -> Int32 {
-        let channel = try session.openSCPChannel(localURL: localURL, remotePath: remotePath, permissions: permissions)
-        try channel.sendFile()
-        return channel.exitStatus()
-    }
-}
-
-// MARK: - Deprecations
-
-public extension SSH {
-    @available(*, deprecated, message: "SSH.Session has been renamed SSH")
-    public typealias Session = SSH
     
-    @available(*, deprecated, message: "SSH.AuthMethod has been renamed SSHAuthMethod")
-    public typealias AuthMethod = SSHAuthMethod
-    
-    @available(*, deprecated, message: "SSH.Password has been renamed SSHPassword")
-    public typealias Password = SSHPassword
-    
-    @available(*, deprecated, message: "SSH.Agent has been renamed SSHAgent")
-    public typealias Agent = SSHAgent
-    
-    @available(*, deprecated, message: "SSH.Key has been renamed SSHKey")
-    public typealias Key = SSHKey
 }

@@ -44,7 +44,7 @@ public struct SSHAgent: SSHAuthMethod {
             last = identity
         }
         guard success else {
-            throw LibSSH2Error(code: -1, message: "Failed to authenticate using the agent")
+            throw SSHError.genericError("failed to authenticate using the agent")
         }
     }
     

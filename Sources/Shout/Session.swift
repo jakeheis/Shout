@@ -26,10 +26,12 @@ class Session {
     }
     
     init() throws {
-        try LibSSH2Error.check(code: Session.initResult, message: "libssh2_init failed")
+        guard Session.initResult == 0 else {
+            throw SSHError.genericError("libssh2_init failed")
+        }
         
         guard let cSession = libssh2_session_init_ex(nil, nil, nil, nil) else {
-            throw LibSSH2Error(code: -1, message: "libssh2_session_init failed")
+            throw SSHError.genericError("libssh2_session_init failed")
         }
         
         self.cSession = cSession
@@ -37,7 +39,7 @@ class Session {
     
     func handshake(over socket: Socket) throws {
         let code = libssh2_session_handshake(cSession, socket.socketfd)
-        try LibSSH2Error.check(code: code, session: cSession)
+        try SSHError.check(code: code, session: cSession)
     }
     
     func authenticate(username: String, privateKey: String, publicKey: String, passphrase: String?) throws {
@@ -47,7 +49,7 @@ class Session {
                                                           publicKey,
                                                           privateKey,
                                                           passphrase)
-        try LibSSH2Error.check(code: code, session: cSession)
+        try SSHError.check(code: code, session: cSession)
     }
     
     func authenticate(username: String, password: String) throws {
@@ -57,19 +59,19 @@ class Session {
                                                 password,
                                                 UInt32(password.count),
                                                 nil)
-        try LibSSH2Error.check(code: code, session: cSession)
+        try SSHError.check(code: code, session: cSession)
     }
     
     func openSftp() throws -> SFTP  {
         return try SFTP(cSession: cSession)
     }
     
-    func openChannel() throws -> Channel {
-        return try Channel(cSession: cSession)
+    func openCommandChannel() throws -> Channel {
+        return try Channel.createForCommand(cSession: cSession)
     }
 
-    public func openSCPChannel(localURL: URL, remotePath: String, permissions: FilePermissions = .default) throws -> SCPChannel {
-        return try SCPChannel(cSession: cSession, localURL: localURL, remotePath: remotePath, permissions: permissions)
+    public func openSCPChannel(fileSize: Int64, remotePath: String, permissions: FilePermissions) throws -> Channel {
+        return try Channel.createForSCP(cSession: cSession, fileSize: fileSize, remotePath: remotePath, permissions: permissions)
     }
     
     func agent() throws -> Agent {

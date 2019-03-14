@@ -8,7 +8,7 @@
 import Foundation
 import CSSH
 
-public struct Permissions : OptionSet {
+public struct Permissions: OptionSet {
     public let rawValue: UInt
     public init(rawValue: UInt) {
         self.rawValue = rawValue

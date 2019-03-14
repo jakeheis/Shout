@@ -28,7 +28,7 @@ class Agent {
     
     init(cSession: OpaquePointer) throws {
         guard let cAgent = libssh2_agent_init(cSession) else {
-            throw LibSSH2Error(code: -1, session: cSession)
+            throw SSHError.mostRecentError(session: cSession, backupMessage: "libssh2_agent_init failed")
         }
         self.cSession = cSession
         self.cAgent = cAgent
@@ -36,12 +36,12 @@ class Agent {
     
     func connect() throws {
         let code = libssh2_agent_connect(cAgent)
-        try LibSSH2Error.check(code: code, session: cSession)
+        try SSHError.check(code: code, session: cSession)
     }
     
     func listIdentities() throws {
         let code = libssh2_agent_list_identities(cAgent)
-        try LibSSH2Error.check(code: code, session: cSession)
+        try SSHError.check(code: code, session: cSession)
     }
     
     func getIdentity(last: PublicKey?) throws -> PublicKey? {
@@ -52,10 +52,10 @@ class Agent {
             return nil
         }
         
-        try LibSSH2Error.check(code: code, session: cSession)
+        try SSHError.check(code: code, session: cSession)
         
         guard let publicKey = publicKeyOptional else {
-            throw LibSSH2Error(code: -1, message: "libssh2_agent_get_identity failed")
+            throw SSHError.genericError("libssh2_agent_get_identity failed")
         }
         
         return PublicKey(cIdentity: publicKey)
