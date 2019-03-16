@@ -9,6 +9,7 @@ import Foundation
 import CSSH
 import Socket
 
+/// Direct bindings to libssh2_session
 class Session {
     
     private static let initResult = libssh2_init(0)

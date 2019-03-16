@@ -8,8 +8,10 @@
 import Foundation
 import CSSH
 
+/// Manages an SFTP session
 public class SFTP {
     
+    /// Direct bindings to libssh2_sftp
     private class SFTPHandle {
         
         // Recommended buffer size accordingly to the docs:
@@ -55,19 +57,21 @@ public class SFTP {
     private let cSession: OpaquePointer
     private let sftpSession: OpaquePointer
         
-    public init(cSession: OpaquePointer) throws {
+    init(cSession: OpaquePointer) throws {
         guard let sftpSession = libssh2_sftp_init(cSession) else {
             throw SSHError.mostRecentError(session: cSession, backupMessage: "libssh2_sftp_init failed")
         }
         self.cSession = cSession
         self.sftpSession = sftpSession
     }
-    
-    deinit {
-        libssh2_sftp_shutdown(sftpSession)
-    }
 
-    public func download(remotePath: String, localUrl: URL) throws {
+    /// Download a file from the remote server to the local device
+    ///
+    /// - Parameters:
+    ///   - remotePath: the path to the existing file on the remote server to download
+    ///   - localURL: the location on the local device whether the file should be downloaded to
+    /// - Throws: SSHError if file can't be created or download fails
+    public func download(remotePath: String, localURL: URL) throws {
         let sftpHandle = try SFTPHandle(
             cSession: cSession,
             sftpSession: sftpSession,
@@ -76,8 +80,11 @@ public class SFTP {
             mode: 0
         )
         
-        FileManager.default.createFile(atPath: localUrl.path, contents: nil, attributes: nil)
-        let fileHandle = try FileHandle(forWritingTo: localUrl)
+        guard FileManager.default.createFile(atPath: localURL.path, contents: nil, attributes: nil),
+            let fileHandle = try? FileHandle(forWritingTo: localURL) else {
+            throw SSHError.genericError("couldn't create file at \(localURL.path)")
+        }
+        
         defer { fileHandle.closeFile() }
 
         var dataLeft = true
@@ -95,7 +102,14 @@ public class SFTP {
         }
     }
     
-    public func upload(localUrl: URL, remotePath: String, permissions: FilePermissions = .default) throws {
+    /// Upload a file from the local device to the remote server
+    ///
+    /// - Parameters:
+    ///   - localURL: the path to the existing file on the local device
+    ///   - remotePath: the location on the remote server whether the file should be uploaded to
+    ///   - permissions: the file permissions to create the new file with; defaults to FilePermissions.default
+    /// - Throws: SSHError if local file can't be read or upload fails
+    public func upload(localURL: URL, remotePath: String, permissions: FilePermissions = .default) throws {
         let sftpHandle = try SFTPHandle(
             cSession: cSession,
             sftpSession: sftpSession,
@@ -104,7 +118,7 @@ public class SFTP {
             mode: LIBSSH2_SFTP_S_IFREG | permissions.rawValue
         )
         
-        let data = try Data(contentsOf: localUrl, options: .alwaysMapped)
+        let data = try Data(contentsOf: localURL, options: .alwaysMapped)
         
         var offset = 0
         while offset < data.count {
@@ -122,4 +136,9 @@ public class SFTP {
             }
         }
     }
+    
+    deinit {
+        libssh2_sftp_shutdown(sftpSession)
+    }
+    
 }

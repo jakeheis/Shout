@@ -9,6 +9,7 @@ import CSSH
 import struct Foundation.Data
 import struct Foundation.URL
 
+/// Direct bindings to libssh2_channel
 class Channel {
     
     private static let session = "session"

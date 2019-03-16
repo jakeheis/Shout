@@ -7,6 +7,7 @@
 
 import CSSH
 
+/// Direct bindings to libssh2_agent
 class Agent {
     
     class PublicKey: CustomStringConvertible {

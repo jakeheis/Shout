@@ -11,10 +11,14 @@ public protocol SSHAuthMethod {
     func authenticate(ssh: SSH, username: String) throws
 }
 
+/// Password-based authentication method
 public struct SSHPassword: SSHAuthMethod {
     
     let password: String
     
+    /// Creates a new password-based authentication using the given password
+    ///
+    /// - Parameter password: the password to authenticate with
     public init(_ password: String) {
         self.password = password
     }
@@ -25,8 +29,10 @@ public struct SSHPassword: SSHAuthMethod {
     
 }
 
+/// Agent-based authentication method
 public struct SSHAgent: SSHAuthMethod {
     
+    /// Creates a new agent-based authentication
     public init() {}
     
     public func authenticate(ssh: SSH, username: String) throws {
@@ -50,12 +56,19 @@ public struct SSHAgent: SSHAuthMethod {
     
 }
 
+/// Key-based authentication method
 public struct SSHKey: SSHAuthMethod {
     
     public let privateKey: String
     public let publicKey: String
     public let passphrase: String?
     
+    /// Creates a new key-based authentication
+    ///
+    /// - Parameters:
+    ///   - privateKey: the path to the private key
+    ///   - publicKey: the path to the public key; defaults to private key path + ".pub"
+    ///   - passphrase: the passphrase encrypting the key; defaults to nil
     public init(privateKey: String, publicKey: String? = nil, passphrase: String? = nil) {
         self.privateKey = NSString(string: privateKey).expandingTildeInPath
         if let publicKey = publicKey {

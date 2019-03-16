@@ -79,6 +79,16 @@ You can send a local file to a remote path, similar to the `scp` command line pr
 let status = try session.sendFile(localURL: myLocalFile, remotePath: "~/cats.png")
 ```
 
+### SFTP
+
+You can open an SFTP session with the remote server:
+
+```swift
+let sftp = try session.openSftp()
+try sftp.download(remotePath: "/a/remote/file", localURL: myLocalFile)
+try sftp.upload(localURL: myLocalFile, remotePath: "~/cats.png")
+```
+
 ### Configuration
 
 You can instruct the session to request a pty (pseudo terminal) before executing commands:

@@ -22,7 +22,7 @@ class SFTPTests: XCTestCase {
             
             XCTAssertFalse(FileManager.default.fileExists(atPath: destinationUrl.path))
             
-            try sftp.download(remotePath: "/etc/hostname", localUrl: destinationUrl)
+            try sftp.download(remotePath: "/etc/hostname", localURL: destinationUrl)
             
             XCTAssertTrue(FileManager.default.fileExists(atPath: destinationUrl.path))
             XCTAssertTrue(try String(contentsOf: destinationUrl).count > 0)
@@ -35,7 +35,7 @@ class SFTPTests: XCTestCase {
         try SSH.connect(host: ShoutServer.host, username: ShoutServer.username, authMethod: ShoutServer.authMethod) { (ssh) in
             let sftp = try ssh.openSftp()
             
-            try sftp.upload(localUrl: URL(fileURLWithPath: String(#file)), remotePath: "/tmp/shout_upload_test.swift")
+            try sftp.upload(localURL: URL(fileURLWithPath: String(#file)), remotePath: "/tmp/shout_upload_test.swift")
             
             let (status, contents) = try ssh.capture("cat /tmp/shout_upload_test.swift")
             XCTAssertEqual(status, 0)
