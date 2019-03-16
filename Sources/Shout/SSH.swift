@@ -57,10 +57,12 @@ public class SSH {
     }
     
     @discardableResult
-    public func execute(_ command: String) throws -> Int32 {
+    public func execute(_ command: String, silent: Bool = false) throws -> Int32 {
         return try execute(command, output: { (output) in
-            print(output, terminator: "")
-            fflush(stdout)
+            if silent == false {
+                print(output, terminator: "")
+                fflush(stdout)
+            }
         })
     }
     
@@ -81,16 +83,21 @@ public class SSH {
         
         try channel.exec(command: command)
         
-        while true {
-            let (data, bytes) = try channel.readData()
-            if bytes == 0 {
+        var dataLeft = true
+        while dataLeft {
+            switch channel.readData() {
+            case .data(let data):
+                let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
+                    return String(cString: pointer)
+                }
+                output(str)
+            case .done:
+                dataLeft = false
+            case .eagain:
                 break
+            case .error(let error):
+                throw error
             }
-            
-            let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
-                return String(cString: pointer)
-            }
-            output(str)
         }
         
         try channel.close()
@@ -98,6 +105,7 @@ public class SSH {
         return channel.exitStatus()
     }
     
+    @discardableResult
     public func sendFile(localURL: URL, remotePath: String, permissions: FilePermissions = .default) throws -> Int32 {
         guard let resources = try? localURL.resourceValues(forKeys: [.fileSizeKey]),
             let fileSize = resources.fileSize,
@@ -119,7 +127,18 @@ public class SSH {
             }
             if bytesRead == 0 { break }
             
-            try channel.write(data: buffer, length: bytesRead)
+            var bytesSent = 0
+            while bytesSent < bytesRead {
+                let chunk = bytesSent == 0 ? buffer : buffer.advanced(by: bytesSent)
+                switch channel.write(data: chunk, length: bytesRead - bytesSent) {
+                case .written(let count):
+                    bytesSent += count
+                case .eagain:
+                    break
+                case .error(let error):
+                    throw error
+                }
+            }
         }
         
         try channel.sendEOF()

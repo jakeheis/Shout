@@ -30,7 +30,7 @@ public struct SSHAgent: SSHAuthMethod {
     public init() {}
     
     public func authenticate(ssh: SSH, username: String) throws {
-        let agent = try ssh.session.agent()
+        let agent = try ssh.session.openAgent()
         try agent.connect()
         try agent.listIdentities()
         

@@ -1,6 +1,8 @@
 import XCTest
-@testable import SlushTests
 
-XCTMain([
-    testCase(SlushTests.allTests),
-])
+import ShoutTests
+
+var tests = [XCTestCaseEntry]()
+tests += ShoutTests.__allTests()
+
+XCTMain(tests)

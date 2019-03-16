@@ -62,8 +62,12 @@ public struct SSHError: Swift.Error, CustomStringConvertible {
     
     static func check(code: Int32, session: OpaquePointer) throws {
         if code != 0 {
-            throw SSHError(kind: Kind(rawValue: -code) ?? .genericError, session: session)
+            throw SSHError.codeError(code: code, session: session)
         }
+    }
+    
+    static func codeError(code: Int32, session: OpaquePointer) -> SSHError {
+        return SSHError(kind: Kind(rawValue: -code) ?? .genericError, session: session)
     }
     
     static func genericError(_ message: String) -> SSHError {

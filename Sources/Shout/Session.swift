@@ -14,7 +14,7 @@ class Session {
     private static let initResult = libssh2_init(0)
     
     private let cSession: OpaquePointer
-    private var _agent: Agent?
+    private var agent: Agent?
     
     var blocking: Int32 {
         get {
@@ -74,12 +74,12 @@ class Session {
         return try Channel.createForSCP(cSession: cSession, fileSize: fileSize, remotePath: remotePath, permissions: permissions)
     }
     
-    func agent() throws -> Agent {
-        if let agent = _agent {
+    func openAgent() throws -> Agent {
+        if let agent = agent {
             return agent
         }
         let newAgent = try Agent(cSession: cSession)
-        _agent = newAgent
+        agent = newAgent
         return newAgent
     }
     

@@ -14,11 +14,13 @@ class Channel {
     private static let session = "session"
     private static let exec = "exec"
     
-    private static let windowDefault: UInt32 = 2 * 1024 * 1024
+    static let windowDefault: UInt32 = 2 * 1024 * 1024
     static let packetDefaultSize: UInt32 = 32768
+    static let readBufferSize = 0x4000
     
     private let cSession: OpaquePointer
     private let cChannel: OpaquePointer
+    private var readBuffer = [Int8](repeating: 0, count: Channel.readBufferSize)
     
     static func createForCommand(cSession: OpaquePointer) throws -> Channel {
         guard let cChannel = libssh2_channel_open_ex(cSession,
@@ -35,7 +37,6 @@ class Channel {
         guard let cChannel = libssh2_scp_send64(cSession, remotePath, permissions.rawValue, fileSize, 0, 0) else {
             throw SSHError.mostRecentError(session: cSession, backupMessage: "libssh2_scp_send64 failed")
         }
-        
         return Channel(cSession: cSession, cChannel: cChannel)
     }
     
@@ -62,29 +63,16 @@ class Channel {
         try SSHError.check(code: code, session: cSession)
     }
     
-    func readData() throws -> (data: Data, bytes: Int) {
-        let bufferSize = 0x4000
-        
-        var data = Data(capacity: bufferSize)
-        
-        let bytesRead: Int = data.withUnsafeMutableBytes { (buffer: UnsafeMutablePointer<Int8>) in
-            return libssh2_channel_read_ex(cChannel, 0, buffer, bufferSize)
-        }
-        
-        if bytesRead < 0 {
-            try SSHError.check(code: Int32(bytesRead), session: cSession)
-        }
-        
-        return (data, bytesRead)
+    func readData() -> ReadWriteProcessor.ReadResult {
+        let result = libssh2_channel_read_ex(cChannel, 0, &readBuffer, Channel.readBufferSize)
+        return ReadWriteProcessor.processRead(result: result, buffer: &readBuffer, session: cSession)
     }
     
-    func write(data: Data, length: Int, to stream: Int32 = 0) throws {
-        let bytesWritten = data.withUnsafeBytes { (bytes) in
+    func write(data: Data, length: Int, to stream: Int32 = 0) -> ReadWriteProcessor.WriteResult {
+        let result = data.withUnsafeBytes { (bytes) in
             libssh2_channel_write_ex(cChannel, stream, bytes, length)
         }
-        if bytesWritten < 0 {
-            try SSHError.check(code: Int32(bytesWritten), session: cSession)
-        }
+        return ReadWriteProcessor.processWrite(result: result, session: cSession)
     }
     
     func sendEOF() throws {
