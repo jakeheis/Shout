@@ -70,7 +70,7 @@ class Session {
         return try Channel.createForCommand(cSession: cSession)
     }
 
-    public func openSCPChannel(fileSize: Int64, remotePath: String, permissions: FilePermissions) throws -> Channel {
+    func openSCPChannel(fileSize: Int64, remotePath: String, permissions: FilePermissions) throws -> Channel {
         return try Channel.createForSCP(cSession: cSession, fileSize: fileSize, remotePath: remotePath, permissions: permissions)
     }
     
