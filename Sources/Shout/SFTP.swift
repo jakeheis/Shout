@@ -21,21 +21,26 @@ public class SFTP {
         private let cSession: OpaquePointer
         private let sftpHandle: OpaquePointer
         private var buffer = [Int8](repeating: 0, count: SFTPHandle.bufferSize)
-        
-        init(cSession: OpaquePointer, sftpSession: OpaquePointer, remotePath: String, flags: Int32, mode: Int32) throws {
+
+        init(cSession: OpaquePointer, sftpSession: OpaquePointer, remotePath: String, flags: Int32, mode: Int32, opt: Int32 = LIBSSH2_SFTP_OPENFILE) throws {
             guard let sftpHandle = libssh2_sftp_open_ex(
                 sftpSession,
                 remotePath,
                 UInt32(remotePath.count),
                 UInt(flags),
                 Int(mode),
-                LIBSSH2_SFTP_OPENFILE) else {
+                    opt) else {
                     throw SSHError.mostRecentError(session: cSession, backupMessage: "libssh2_sftp_open_ex failed")
             }
             self.cSession = cSession
             self.sftpHandle = sftpHandle
         }
         
+        func readNext(_ attrs: inout LIBSSH2_SFTP_ATTRIBUTES) -> ReadWriteProcessor.ReadResult {
+            let result = libssh2_sftp_readdir_ex(sftpHandle, &buffer, SFTPHandle.bufferSize, nil, 0, &attrs)
+            return ReadWriteProcessor.processRead(result: Int(result), buffer: &buffer, session: cSession)
+        }
+
         func read() -> ReadWriteProcessor.ReadResult {
             let result = libssh2_sftp_read(sftpHandle, &buffer, SFTPHandle.bufferSize)
             return ReadWriteProcessor.processRead(result: result, buffer: &buffer, session: cSession)
@@ -63,6 +68,38 @@ public class SFTP {
         }
         self.cSession = cSession
         self.sftpSession = sftpSession
+    }
+
+    
+    
+    public func dir(remotePath: String) throws -> [String:LIBSSH2_SFTP_ATTRIBUTES]  {
+        let sftpHandle = try SFTPHandle(
+                cSession: cSession,
+                sftpSession: sftpSession,
+                remotePath: remotePath,
+                flags: LIBSSH2_FXF_READ,
+                mode: 0,
+                opt: LIBSSH2_SFTP_OPENDIR
+        )
+
+        var files = [String:LIBSSH2_SFTP_ATTRIBUTES]()
+        var attrs = LIBSSH2_SFTP_ATTRIBUTES()
+
+        var dataLeft = true
+        while dataLeft {
+            switch sftpHandle.readNext(&attrs) {
+            case .data(let data):
+                let name = String(data: data, encoding: .utf8)!
+                files[name] = attrs
+            case .done:
+                dataLeft = false
+            case .eagain:
+                break
+            case .error(let error):
+                throw error
+            }
+        }
+        return files
     }
 
     /// Download a file from the remote server to the local device
