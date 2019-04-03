@@ -41,6 +41,11 @@ public class SFTP {
             return ReadWriteProcessor.processRead(result: Int(result), buffer: &buffer, session: cSession)
         }
 
+        func read(buffer: UnsafeMutablePointer<Int8>, maxLength len: Int) -> ReadWriteProcessor.ReadResult {
+            let result = libssh2_sftp_read(sftpHandle, buffer, len)
+            return ReadWriteProcessor.processRead(result: result, session: cSession)
+        }
+
         func read() -> ReadWriteProcessor.ReadResult {
             let result = libssh2_sftp_read(sftpHandle, &buffer, SFTPHandle.bufferSize)
             return ReadWriteProcessor.processRead(result: result, buffer: &buffer, session: cSession)
@@ -88,9 +93,15 @@ public class SFTP {
         var dataLeft = true
         while dataLeft {
             switch sftpHandle.readNext(&attrs) {
-            case .data(let data):
-                let name = String(data: data, encoding: .utf8)!
-                files[name] = attrs
+            case .data(let dataResult):
+                switch dataResult {
+                case .data(let data):
+                    let name = String(data: data, encoding: .utf8)!
+                    files[name] = attrs
+                case .len:
+                    fatalError("impossible state")
+                }
+
             case .done:
                 dataLeft = false
             case .eagain:
@@ -101,6 +112,7 @@ public class SFTP {
         }
         return files
     }
+    
 
     /// Download a file from the remote server to the local device
     ///
@@ -127,8 +139,13 @@ public class SFTP {
         var dataLeft = true
         while dataLeft {
             switch sftpHandle.read() {
-            case .data(let data):
-                fileHandle.write(data)
+            case .data(let dataResult):
+                switch dataResult {
+                case .data(let data):
+                    fileHandle.write(data)
+                case .len:
+                    fatalError("impossible state")
+                }
             case .done:
                 dataLeft = false
             case .eagain:
@@ -138,6 +155,68 @@ public class SFTP {
             }
         }
     }
+
+    private class SFTPInputStream: InputStream {
+        var sftpHandle: SFTPHandle!
+        private var bytesAvailable = true
+
+        override func open() {
+        }
+
+        override func close() {
+        }
+
+        override func read(_ buffer: UnsafeMutablePointer<UInt8>, maxLength len: Int) -> Int {
+
+            let opaquePtr = OpaquePointer(buffer)
+            let int8pointer = UnsafeMutablePointer<Int8>(opaquePtr)
+            let res = self.sftpHandle.read(buffer: int8pointer , maxLength: len)
+
+            while true {
+                switch res {
+                case .data(let dataResult):
+                    switch dataResult {
+                    case .data:
+                        fatalError("impossible state!")
+                    case .len(let len):
+                        return len
+                    }
+                case .done:
+                    bytesAvailable = false
+                    return 0
+                case .eagain:
+                    Thread.sleep(forTimeInterval: 0.1)
+                    break
+                case .error:
+                    return 0
+                }
+            }
+        }
+
+        override func getBuffer(_ buffer: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>, length len: UnsafeMutablePointer<Int>) -> Bool {
+            return false
+        }
+
+        override var hasBytesAvailable: Bool {
+            return true
+        }
+    }
+
+
+    public func download(remotePath: String) throws -> InputStream {
+        let sftpHandle = try SFTPHandle(
+                cSession: cSession,
+                sftpSession: sftpSession,
+                remotePath: remotePath,
+                flags: LIBSSH2_FXF_READ,
+                mode: 0
+        )
+
+        let stream =  SFTPInputStream()
+        stream.sftpHandle = sftpHandle
+        return stream
+    }
+
     
     /// Upload a file from the local device to the remote server
     ///

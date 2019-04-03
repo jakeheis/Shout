@@ -146,11 +146,16 @@ public class SSH {
         var dataLeft = true
         while dataLeft {
             switch channel.readData() {
-            case .data(let data):
-                let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
-                    return String(cString: pointer)
+            case .data(let dataResult):
+                switch dataResult {
+                case .data(let data):
+                    let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
+                        return String(cString: pointer)
+                    }
+                    output(str)
+                case .len:
+                    fatalError("impossible state")
                 }
-                output(str)
             case .done:
                 dataLeft = false
             case .eagain:
