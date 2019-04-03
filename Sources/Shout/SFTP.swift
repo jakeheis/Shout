@@ -160,6 +160,10 @@ public class SFTP {
         var sftpHandle: SFTPHandle!
         private var bytesAvailable = true
 
+        public init(){
+            super.init(data: Data())
+        }
+
         override func open() {
         }
 
