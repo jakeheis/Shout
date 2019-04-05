@@ -168,6 +168,7 @@ public class SFTP {
         }
 
         override func close() {
+            bytesAvailable = false
         }
 
         override func read(_ buffer: UnsafeMutablePointer<UInt8>, maxLength len: Int) -> Int {
@@ -179,6 +180,9 @@ public class SFTP {
             while true {
                 switch res {
                 case .data(let dataResult):
+                    guard bytesAvailable else {
+                        return 0
+                    }
                     switch dataResult {
                     case .data:
                         fatalError("impossible state!")
@@ -202,7 +206,7 @@ public class SFTP {
         }
 
         override var hasBytesAvailable: Bool {
-            return true
+            return bytesAvailable
         }
     }
 
