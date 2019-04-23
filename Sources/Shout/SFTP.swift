@@ -159,7 +159,13 @@ public class SFTP {
         }
         return files
     }
-    
+
+    public func remove(_ path: String) throws {
+        let result = libssh2_sftp_unlink_ex(sftpSession, path, UInt32(path.count))
+        if result != 0 {
+            throw SSHError.codeError(code: Int32(result), session: cSession)
+        }
+    }
 
     /// Download a file from the remote server to the local device
     ///
