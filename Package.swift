@@ -9,7 +9,7 @@ let package = Package(
         .library(name: "Shout", targets: ["Shout"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/IBM-Swift/BlueSocket", from: "0.12.68"),
+        .package(url: "https://github.com/IBM-Swift/BlueSocket", from: "1.0.46"),
         .package(url: "https://github.com/jakeheis/CSSH", from: "1.0.3"),
     ],
     targets: [
