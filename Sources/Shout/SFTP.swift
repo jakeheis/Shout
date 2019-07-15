@@ -110,6 +110,32 @@ public class SFTP {
     ///   - permissions: the file permissions to create the new file with; defaults to FilePermissions.default
     /// - Throws: SSHError if local file can't be read or upload fails
     public func upload(localURL: URL, remotePath: String, permissions: FilePermissions = .default) throws {
+        let data = try Data(contentsOf: localURL, options: .alwaysMapped)
+        try upload(data: data, remotePath: remotePath, permissions: permissions)
+    }
+    
+    /// Upload a file from the local device to the remote server
+    ///
+    /// - Parameters:
+    ///   - string: String to be uploaded as a file
+    ///   - remotePath: the location on the remote server whether the file should be uploaded to
+    ///   - permissions: the file permissions to create the new file with; defaults to FilePermissions.default
+    /// - Throws: SSHError if string is not valid or upload fails
+    public func upload(string: String, remotePath: String, permissions: FilePermissions = .default) throws {
+        guard let data = string.data(using: .utf8) else {
+            throw SSHError.genericError("Unable to convert string to utf8 data")
+        }
+        try upload(data: data, remotePath: remotePath, permissions: permissions)
+    }
+    
+    /// Upload a file from the local device to the remote server
+    ///
+    /// - Parameters:
+    ///   - data: Data to be uploaded as a file
+    ///   - remotePath: the location on the remote server whether the file should be uploaded to
+    ///   - permissions: the file permissions to create the new file with; defaults to FilePermissions.default
+    /// - Throws: SSHError if upload fails
+    public func upload(data: Data, remotePath: String, permissions: FilePermissions = .default) throws {
         let sftpHandle = try SFTPHandle(
             cSession: cSession,
             sftpSession: sftpSession,
@@ -117,8 +143,6 @@ public class SFTP {
             flags: LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT,
             mode: LIBSSH2_SFTP_S_IFREG | permissions.rawValue
         )
-        
-        let data = try Data(contentsOf: localURL, options: .alwaysMapped)
         
         var offset = 0
         while offset < data.count {
