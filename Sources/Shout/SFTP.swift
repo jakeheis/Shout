@@ -114,7 +114,7 @@ public class SFTP {
         try upload(data: data, remotePath: remotePath, permissions: permissions)
     }
     
-    /// Upload a file from the local device to the remote server
+    /// Upload data to a file on the remote server
     ///
     /// - Parameters:
     ///   - string: String to be uploaded as a file
@@ -128,7 +128,7 @@ public class SFTP {
         try upload(data: data, remotePath: remotePath, permissions: permissions)
     }
     
-    /// Upload a file from the local device to the remote server
+    /// Upload data to a file on the remote server
     ///
     /// - Parameters:
     ///   - data: Data to be uploaded as a file
