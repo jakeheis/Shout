@@ -36,18 +36,6 @@ public class SFTP {
             self.sftpHandle = sftpHandle
         }
         
-        func mkdir(_ remotePath: Data, permissions: FilePermissions) -> ReadWriteProcessor.WriteResult {
-            let result = remotePath.withUnsafeBytes { (bytes) -> Int in
-                let pointer = bytes.baseAddress!.assumingMemoryBound(to: CChar.self)
-                return Int(libssh2_sftp_mkdir_ex(sftpHandle,
-                                                 pointer,
-                                                 UInt32(remotePath.count),
-                                                 Int(permissions.rawValue)))
-            }
-            
-            return ReadWriteProcessor.processWrite(result: result, session: cSession)
-        }
-        
         func read() -> ReadWriteProcessor.ReadResult {
             let result = libssh2_sftp_read(sftpHandle, &buffer, SFTPHandle.bufferSize)
             return ReadWriteProcessor.processRead(result: result, buffer: &buffer, session: cSession)
@@ -114,39 +102,6 @@ public class SFTP {
             }
         }
         return files
-    }
-    
-    
-    /// Makes a new directory on the remote server
-    /// - Parameter remotePath: <#remotePath description#>
-    /// - Parameter permissions: <#permissions description#>
-    public func mkdir(remotePath: String, permissions: FilePermissions = .directoryDefault) throws {
-        let sftpHandle = try SFTPHandle(
-            cSession: cSession,
-            sftpSession: sftpSession,
-            remotePath: remotePath,
-            flags: LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT,
-            mode: LIBSSH2_SFTP_S_IFREG | permissions.rawValue)
-        
-        guard let data = remotePath.data(using: .utf8) else {
-            throw SSHError.genericError("Unable to convert string to utf8 data")
-        }
-        
-        var offset = 0
-        while offset < data.count {
-            let upTo = Swift.min(offset + SFTPHandle.bufferSize, data.count)
-            let subdata = data.subdata(in: offset ..< upTo)
-            if subdata.count > 0 {
-                switch sftpHandle.write(subdata) {
-                case .written(let bytesSent):
-                    offset += bytesSent
-                case .eagain:
-                    break
-                case .error(let error):
-                    throw error
-                }
-            }
-        }
     }
 
     /// Download a file from the remote server to the local device

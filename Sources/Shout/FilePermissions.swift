@@ -67,5 +67,5 @@ public struct FilePermissions: RawRepresentable {
     }
 
     public static let `default` = FilePermissions(owner: [.read, .write], group: [.read], others: [.read])
-    public static let `directoryDefault` = FilePermissions(owner: [.read, .write, .execute], group: [.read, .execute], others: [.read, .execute])
+
 }
