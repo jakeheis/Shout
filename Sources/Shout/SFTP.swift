@@ -91,7 +91,7 @@ public class SFTP {
             case .written(_):
                 wasSent = true
             case .eagain:
-                break
+                continue
             case .error(let error):
                 throw error
             }
