@@ -35,7 +35,7 @@ public class SFTP {
             self.cSession = cSession
             self.sftpHandle = sftpHandle
         }
-        
+
         func read() -> ReadWriteProcessor.ReadResult {
             let result = libssh2_sftp_read(sftpHandle, &buffer, SFTPHandle.bufferSize)
             return ReadWriteProcessor.processRead(result: result, buffer: &buffer, session: cSession)
@@ -63,6 +63,39 @@ public class SFTP {
         }
         self.cSession = cSession
         self.sftpSession = sftpSession
+    }
+    
+    private func mkdir(_ remotePath: Data, permissions: FilePermissions) -> ReadWriteProcessor.WriteResult {
+        let result = remotePath.withUnsafeBytes { (bytes) -> Int in
+            let pointer = bytes.baseAddress!.assumingMemoryBound(to: CChar.self)
+            return Int(libssh2_sftp_mkdir_ex(sftpSession,
+                                             pointer,
+                                             UInt32(remotePath.count),
+                                             Int(permissions.rawValue)))
+        }
+        
+        return ReadWriteProcessor.processWrite(result: result, session: cSession)
+    }
+
+    /// Makes a new directory on the remote server
+    /// - Parameter remotePath: the path to the new directory on the remote server
+    /// - Parameter permissions: the file permissions to create the new directory with; defaults to FilePermissions.directoryDefault
+    public func mkdir(remotePath: String, permissions: FilePermissions = .directoryDefault) throws {
+        guard let data = remotePath.data(using: .utf8) else {
+            throw SSHError.genericError("Unable to convert string to utf8 data")
+        }
+
+        var wasSent = false
+        while !wasSent {
+            switch mkdir(data, permissions: permissions) {
+            case .written(_):
+                wasSent = true
+            case .eagain:
+                break
+            case .error(let error):
+                throw error
+            }
+        }
     }
 
     /// Download a file from the remote server to the local device
