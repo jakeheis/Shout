@@ -161,6 +161,75 @@ public class SFTP {
         }
     }
     
+    /// Create a folder on the remote server
+    ///
+    /// - Parameters:
+    ///   - remotePath: the path for the folder, which should be created
+    /// - Throws: SSHError if folder can't be created
+    func createDirectory(_ path: String) throws {
+        let result = path.withCString { (pointer: UnsafePointer<Int8>) -> Int32 in
+            return libssh2_sftp_mkdir_ex(sftpSession, pointer, UInt32(strlen(pointer)), Int(LIBSSH2_SFTP_S_IRWXU | LIBSSH2_SFTP_S_IRGRP | LIBSSH2_SFTP_S_IXGRP | LIBSSH2_SFTP_S_IROTH | LIBSSH2_SFTP_S_IXOTH))
+        }
+        try handleSFTPCommandResult(result)
+    }
+    
+    /// Rename a file on the remote server
+    ///
+    /// - Parameters:
+    ///   - src: the (old) path of the file, which should be renamed
+    ///   - dest: the new path of the file
+    ///   - override: set to true, if rename should override if there is already a file on dest path
+    /// - Throws: SSHError if file can't be renamed
+    func rename(src: String, dest: String, override: Bool) throws {
+        var flag: Int = Int(LIBSSH2_SFTP_RENAME_OVERWRITE)
+        if !override { flag = 0 }
+        
+        let result = src.withCString { (srcPointer: UnsafePointer<Int8>) -> Int32 in
+            return dest.withCString { (destPointer: UnsafePointer<Int8>) -> Int32 in
+                return libssh2_sftp_rename_ex(sftpSession, srcPointer, UInt32(strlen(srcPointer)), destPointer, UInt32(strlen(destPointer)), flag)
+            }
+        }
+        try handleSFTPCommandResult(result)
+    }
+    
+    /// Remove a file on the remote server
+    ///
+    /// - Parameters:
+    ///   - remotePath: the path of the file, which should be removed
+    /// - Throws: SSHError if file can't be deleted
+    func removeFile(_ path: String) throws {
+        let result = path.withCString { (pointer: UnsafePointer<Int8>) -> Int32 in
+            return libssh2_sftp_unlink_ex(sftpSession, pointer, UInt32(strlen(pointer)))
+        }
+        try handleSFTPCommandResult(result)
+    }
+    
+    /// Remove a folder on the remote server
+    ///
+    /// - Parameters:
+    ///   - remotePath: the path of the folder, which should be removed
+    /// - Throws: SSHError if folder can't be deleted
+    func removeDirectory(_ path: String) throws {
+        let result = path.withCString { (pointer: UnsafePointer<Int8>) -> Int32 in
+            return libssh2_sftp_rmdir_ex(sftpSession, pointer, UInt32(strlen(pointer)))
+        }
+        try handleSFTPCommandResult(result)
+    }
+    
+    private func handleSFTPCommandResult(_ result: Int32) throws {
+        let processedResult = ReadWriteProcessor.processWrite(result: Int(result), session: cSession)
+        switch processedResult {
+        case .written( _):
+            break
+        case .eagain:
+            break
+        case .error(let error):
+            throw error
+        }
+    }
+    
+    
+    
     deinit {
         libssh2_sftp_shutdown(sftpSession)
     }
