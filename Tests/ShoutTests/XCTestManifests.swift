@@ -4,6 +4,10 @@ extension SFTPTests {
     static let __allTests = [
         ("testDownload", testDownload),
         ("testUpload", testUpload),
+        ("testRemove", testRemove),
+        ("testRename", testRename),
+        ("testRemoveDirectory", testRemoveDirectory),
+        ("testCreateDirectory", testCreateDirectory)
     ]
 }
 
