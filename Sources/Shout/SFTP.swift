@@ -22,14 +22,14 @@ public class SFTP {
         private let sftpHandle: OpaquePointer
         private var buffer = [Int8](repeating: 0, count: SFTPHandle.bufferSize)
         
-        init(cSession: OpaquePointer, sftpSession: OpaquePointer, remotePath: String, flags: Int32, mode: Int32) throws {
+        init(cSession: OpaquePointer, sftpSession: OpaquePointer, remotePath: String, flags: Int32, mode: Int32, openType: Int32 = LIBSSH2_SFTP_OPENFILE) throws {
             guard let sftpHandle = libssh2_sftp_open_ex(
                 sftpSession,
                 remotePath,
                 UInt32(remotePath.count),
                 UInt(flags),
                 Int(mode),
-                LIBSSH2_SFTP_OPENFILE) else {
+                openType) else {
                     throw SSHError.mostRecentError(session: cSession, backupMessage: "libssh2_sftp_open_ex failed")
             }
             self.cSession = cSession
@@ -230,7 +230,8 @@ public class SFTP {
                 sftpSession: sftpSession,
                 remotePath: directory,
                 flags: LIBSSH2_FXF_READ,
-                mode: 0
+                mode: 0,
+                openType: LIBSSH2_SFTP_OPENDIR
         )
 
         var files = [String : FileAttributes]()
