@@ -22,14 +22,14 @@ public class SFTP {
         private let sftpHandle: OpaquePointer
         private var buffer = [Int8](repeating: 0, count: SFTPHandle.bufferSize)
         
-        init(cSession: OpaquePointer, sftpSession: OpaquePointer, remotePath: String, flags: Int32, mode: Int32) throws {
+        init(cSession: OpaquePointer, sftpSession: OpaquePointer, remotePath: String, flags: Int32, mode: Int32, openType: Int32 = LIBSSH2_SFTP_OPENFILE) throws {
             guard let sftpHandle = libssh2_sftp_open_ex(
                 sftpSession,
                 remotePath,
                 UInt32(remotePath.count),
                 UInt(flags),
                 Int(mode),
-                LIBSSH2_SFTP_OPENFILE) else {
+                openType) else {
                     throw SSHError.mostRecentError(session: cSession, backupMessage: "libssh2_sftp_open_ex failed")
             }
             self.cSession = cSession
@@ -48,6 +48,11 @@ public class SFTP {
             return ReadWriteProcessor.processWrite(result: result, session: cSession)
         }
         
+        func readDir(_ attrs: inout LIBSSH2_SFTP_ATTRIBUTES) -> ReadWriteProcessor.ReadResult {
+            let result = libssh2_sftp_readdir_ex(sftpHandle, &buffer, SFTPHandle.bufferSize, nil, 0, &attrs)
+            return ReadWriteProcessor.processRead(result: Int(result), buffer: &buffer, session: cSession)
+        }
+
         deinit {
             libssh2_sftp_close_handle(sftpHandle)
         }
@@ -215,6 +220,42 @@ public class SFTP {
         }
         try handleSFTPCommandResult(result)
     }
+    
+    
+    
+    public func listFiles(in directory: String) throws -> [String : FileAttributes] {
+        
+        let sftpHandle = try SFTPHandle(
+                cSession: cSession,
+                sftpSession: sftpSession,
+                remotePath: directory,
+                flags: LIBSSH2_FXF_READ,
+                mode: 0,
+                openType: LIBSSH2_SFTP_OPENDIR
+        )
+
+        var files = [String : FileAttributes]()
+        var attrs = LIBSSH2_SFTP_ATTRIBUTES()
+
+        var dataLeft = true
+        while dataLeft {
+            switch sftpHandle.readDir(&attrs) {
+            case .data(let data):
+                guard let name = String(data: data, encoding: .utf8) else {
+                    throw SSHError.genericError("unable to convert data to utf8 string")
+                }
+                files[name] = FileAttributes(attributes: attrs)
+            case .done:
+                dataLeft = false
+            case .eagain:
+                break
+            case .error(let error):
+                throw error
+            }
+        }
+        return files
+    }
+    
     
     private func handleSFTPCommandResult(_ result: Int32) throws {
         let processedResult = ReadWriteProcessor.processWrite(result: Int(result), session: cSession)
