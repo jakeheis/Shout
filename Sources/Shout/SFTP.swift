@@ -107,6 +107,38 @@ public class SFTP {
         }
     }
     
+    /// Download a file from the remote server to the local device
+    ///
+    /// - Parameters:
+    ///   - remotePath: the path to the existing file on the remote server to download
+    ///   - localURL: the location on the local device whether the file should be downloaded to
+    /// - Throws: SSHError if file can't be created or download fails
+    public func download(remotePath: String) throws -> Data {
+        let sftpHandle = try SFTPHandle(
+            cSession: cSession,
+            sftpSession: sftpSession,
+            remotePath: remotePath,
+            flags: LIBSSH2_FXF_READ,
+            mode: 0
+        )
+        
+        var downloadedData = Data()
+        
+        var dataLeft = true
+        while dataLeft {
+            switch sftpHandle.read() {
+            case .data(let data):
+                downloadedData.append(data)
+            case .done:
+                dataLeft = false
+            case .eagain:
+                break
+            case .error(let error):
+                throw error
+            }
+        }
+    }
+    
     /// Upload a file from the local device to the remote server
     ///
     /// - Parameters:
