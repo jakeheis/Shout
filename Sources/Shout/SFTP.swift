@@ -137,6 +137,8 @@ public class SFTP {
                 throw error
             }
         }
+        
+        return downloadedData
     }
     
     /// Upload a file from the local device to the remote server
