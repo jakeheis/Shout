@@ -70,8 +70,8 @@ class Channel {
     }
     
     func write(data: Data, length: Int, to stream: Int32 = 0) -> ReadWriteProcessor.WriteResult {
-        let result = data.withUnsafeBytes { (bytes) in
-            libssh2_channel_write_ex(cChannel, stream, bytes, length)
+        let result = data.withUnsafeBytes {
+            libssh2_channel_write_ex(cChannel, stream, $0.bindMemory(to: Int8.self).baseAddress!, length)
         }
         return ReadWriteProcessor.processWrite(result: result, session: cSession)
     }

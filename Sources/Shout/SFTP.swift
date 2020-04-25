@@ -42,8 +42,8 @@ public class SFTP {
         }
         
         func write(_ data: Data) -> ReadWriteProcessor.WriteResult {
-            let result = data.withUnsafeBytes { (pointer: UnsafePointer<Int8>) -> Int in
-                return libssh2_sftp_write(sftpHandle, pointer, data.count)
+            let result: Int = data.withUnsafeBytes {
+                return libssh2_sftp_write(sftpHandle, $0.bindMemory(to: Int8.self).baseAddress, data.count)
             }
             return ReadWriteProcessor.processWrite(result: result, session: cSession)
         }
