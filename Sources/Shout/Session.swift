@@ -64,7 +64,7 @@ class Session {
     }
     
     func openSftp() throws -> SFTP  {
-        return try SFTP(cSession: cSession)
+        return try SFTP(session: self, cSession: cSession)
     }
     
     func openCommandChannel() throws -> Channel {

@@ -61,13 +61,17 @@ public class SFTP {
     
     private let cSession: OpaquePointer
     private let sftpSession: OpaquePointer
+    
+    // Retain session to ensure it is not freed before the sftp session is closed
+    private let session: Session
         
-    init(cSession: OpaquePointer) throws {
+    init(session: Session, cSession: OpaquePointer) throws {
         guard let sftpSession = libssh2_sftp_init(cSession) else {
             throw SSHError.mostRecentError(session: cSession, backupMessage: "libssh2_sftp_init failed")
         }
         self.cSession = cSession
         self.sftpSession = sftpSession
+        self.session = session
     }
 
     /// Download a file from the remote server to the local device
