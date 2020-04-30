@@ -1,6 +1,6 @@
 # Shout
 
-[![Build Status](https://travis-ci.org/jakeheis/Shout.svg?branch=master)](https://travis-ci.org/jakeheis/Shout)
+[![Build Status](https://github.com/jakeheis/Shout/workflows/Test/badge.svg)](https://github.com/jakeheis/Shout/actions)
 
 SSH made easy in Swift
 
