@@ -24,9 +24,27 @@ Add Shout as a dependency to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/jakeheis/Shout", from: "0.5.0")
+    .package(url: "https://github.com/jakeheis/Shout", from: "0.5.5")
 ]
 ```
+
+## Swift 5.2 note
+
+Due to a bug in Swift 5.2, in order to build a project that depends on `Shout` you must explicitly tell SPM where to find the pkgconfig for `libssh2`. If you installed `libssh2` using Homebrew, the instruction looks something like:
+
+```bash
+export PKG_CONFIG_PATH="/usr/local/opt/openssl@1.1/lib/pkgconfig"
+swift build
+```
+
+Generating an Xcode project is done the same way:
+
+```bash
+export PKG_CONFIG_PATH="/usr/local/opt/openssl@1.1/lib/pkgconfig"
+swift package generate-xcodeproj
+```
+
+See [issue #34](https://github.com/jakeheis/Shout/issues/34) for more details.
 
 ## Usage
 
