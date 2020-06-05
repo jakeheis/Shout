@@ -147,7 +147,8 @@ public class SSH {
         while dataLeft {
             switch channel.readData() {
             case .data(let data):
-                let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
+                let str: String = data.withUnsafeBytes {
+                    guard let pointer = $0.bindMemory(to: CChar.self).baseAddress else { return "" }
                     return String(cString: pointer)
                 }
                 output(str)
@@ -189,8 +190,9 @@ public class SSH {
         var buffer = Data(capacity: bufferSize)
         
         while inputStream.hasBytesAvailable {
-            let bytesRead = buffer.withUnsafeMutableBytes { data in
-                inputStream.read(data, maxLength: bufferSize)
+            let bytesRead: Int = buffer.withUnsafeMutableBytes {
+                guard let pointer = $0.bindMemory(to: UInt8.self).baseAddress else { return 0 }
+                return inputStream.read(pointer, maxLength: bufferSize)
             }
             if bytesRead == 0 { break }
             

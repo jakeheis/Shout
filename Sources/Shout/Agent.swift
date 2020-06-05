@@ -47,7 +47,7 @@ class Agent {
     
     func getIdentity(last: PublicKey?) throws -> PublicKey? {
         var publicKeyOptional: UnsafeMutablePointer<libssh2_agent_publickey>? = nil
-        let code = libssh2_agent_get_identity(cAgent, UnsafeMutablePointer(mutating: &publicKeyOptional), last?.cIdentity)
+        let code = libssh2_agent_get_identity(cAgent, &publicKeyOptional, last?.cIdentity)
         
         if code == 1 { // No more identities
             return nil
