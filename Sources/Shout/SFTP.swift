@@ -42,11 +42,18 @@ public class SFTP {
         }
         
         func write(_ data: Data) -> ReadWriteProcessor.WriteResult {
-            let result: Int = data.withUnsafeBytes {
-                guard let unsafePointer = $0.bindMemory(to: Int8.self).baseAddress else { return 0 }
-                return libssh2_sftp_write(sftpHandle, unsafePointer, data.count)
+            let result: Result<Int, SSHError> = data.withUnsafeBytes {
+                guard let unsafePointer = $0.bindMemory(to: Int8.self).baseAddress else {
+                    return .failure(SSHError.genericError("SFTP write failed to bind memory"))
+                }
+                return .success(libssh2_sftp_write(sftpHandle, unsafePointer, data.count))
             }
-            return ReadWriteProcessor.processWrite(result: result, session: cSession)
+            switch result {
+            case .failure(let error):
+                return .error(error)
+            case .success(let value):
+                return ReadWriteProcessor.processWrite(result: value, session: cSession)
+            }
         }
         
         func readDir(_ attrs: inout LIBSSH2_SFTP_ATTRIBUTES) -> ReadWriteProcessor.ReadResult {
