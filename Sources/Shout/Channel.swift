@@ -70,10 +70,18 @@ class Channel {
     }
     
     func write(data: Data, length: Int, to stream: Int32 = 0) -> ReadWriteProcessor.WriteResult {
-        let result = data.withUnsafeBytes { (bytes) in
-            libssh2_channel_write_ex(cChannel, stream, bytes, length)
+        let result: Result<Int, SSHError> = data.withUnsafeBytes {
+            guard let unsafePointer = $0.bindMemory(to: Int8.self).baseAddress else {
+                return .failure(SSHError.genericError("Channel write failed to bind memory"))
+            }
+            return .success(libssh2_channel_write_ex(cChannel, stream, unsafePointer, length))
         }
-        return ReadWriteProcessor.processWrite(result: result, session: cSession)
+        switch result {
+        case .failure(let error):
+            return .error(error)
+        case .success(let value):
+            return ReadWriteProcessor.processWrite(result: value, session: cSession)
+        }
     }
     
     func sendEOF() throws {

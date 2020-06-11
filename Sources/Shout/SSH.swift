@@ -147,8 +147,8 @@ public class SSH {
         while dataLeft {
             switch channel.readData() {
             case .data(let data):
-                let str = data.withUnsafeBytes { (pointer: UnsafePointer<CChar>) in
-                    return String(cString: pointer)
+                guard let str = String(data: data, encoding: .utf8) else {
+                    throw SSHError.genericError("SSH failed to create string using UTF8 encoding")
                 }
                 output(str)
             case .done:
@@ -189,9 +189,13 @@ public class SSH {
         var buffer = Data(capacity: bufferSize)
         
         while inputStream.hasBytesAvailable {
-            let bytesRead = buffer.withUnsafeMutableBytes { data in
-                inputStream.read(data, maxLength: bufferSize)
+            let bytesRead: Int  = try buffer.withUnsafeMutableBytes {
+                guard let pointer = $0.bindMemory(to: UInt8.self).baseAddress else {
+                   throw SSHError.genericError("SSH write failed to bind buffer memory")
+                }
+                return inputStream.read(pointer, maxLength: bufferSize)
             }
+            
             if bytesRead == 0 { break }
             
             var bytesSent = 0
