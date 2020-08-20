@@ -60,6 +60,11 @@ public class SFTP {
             let result = libssh2_sftp_readdir_ex(sftpHandle, &buffer, SFTPHandle.bufferSize, nil, 0, &attrs)
             return ReadWriteProcessor.processRead(result: Int(result), buffer: &buffer, session: cSession)
         }
+        
+        func attr(_ attrs: inout LIBSSH2_SFTP_ATTRIBUTES) -> ReadWriteProcessor.ReadResult {
+            let result = libssh2_sftp_fstat_ex(sftpHandle, &attrs, 0)
+            return ReadWriteProcessor.processRead(result: Int(result), buffer: &buffer, session: cSession)
+        }
 
         deinit {
             libssh2_sftp_close_handle(sftpHandle)
@@ -268,6 +273,37 @@ public class SFTP {
         return files
     }
     
+    /// Read attributes of a file on the remote server
+    ///
+    /// - Parameters:
+    ///   - remotePath: the location on the remote server of the file
+    /// - Throws: if remote file can't be read
+    public func attr(remotePath: String) throws -> FileAttributes? {
+        
+        let sftpHandle = try SFTPHandle(
+                cSession: cSession,
+                sftpSession: sftpSession,
+                remotePath: remotePath,
+                flags: LIBSSH2_FXF_READ,
+                mode: 0,
+                openType: LIBSSH2_SFTP_STAT
+        )
+        
+        var attrs = LIBSSH2_SFTP_ATTRIBUTES()
+        
+        switch sftpHandle.attr(&attrs) {
+        case .data:
+            break;
+        case .done:
+            break;
+        case .eagain:
+            break
+        case .error(let error):
+            throw error
+        }
+        
+        return FileAttributes(attributes: attrs)
+    }
     
     private func handleSFTPCommandResult(_ result: Int32) throws {
         let processedResult = ReadWriteProcessor.processWrite(result: Int(result), session: cSession)
