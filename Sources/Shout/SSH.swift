@@ -45,9 +45,9 @@ public class SSH {
     /// - Parameters:
     ///   - host: the host to connect to
     ///   - port: the port to connect to; default 22
-    ///   - timeout: timeout to use (in msec); default 5000 (5 seconds)
+    ///   - timeout: timeout to use (in msec); default 0
     /// - Throws: SSHError if the SSH session couldn't be created
-    public init(host: String, port: Int32 = 22, timeout: UInt = 5000) throws {
+    public init(host: String, port: Int32 = 22, timeout: UInt = 0) throws {
         self.sock = try Socket.create()
         self.session = try Session()
         
