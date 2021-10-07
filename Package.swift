@@ -12,7 +12,7 @@ let package = Package(
         .library(name: "Shout", targets: ["Shout"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/IBM-Swift/BlueSocket", from: "1.0.46"),
+        .package(url: "https://github.com/IBM-Swift/BlueSocket", from: "2.0.0"),
     ],
     targets: [
         .systemLibrary(name: "CSSH", pkgConfig: "libssh2", providers: [.brew(["libssh2","openssl"])]),
