@@ -121,4 +121,37 @@ class SFTPTests: XCTestCase {
         }
     }
 
+    func testUnicode() throws {
+        try SSH.connect(host: ShoutServer.host, username: ShoutServer.username, authMethod: ShoutServer.authMethod) { (ssh) in
+            let sftp = try ssh.openSftp()
+
+            try sftp.createDirectory("/tmp/你好")
+
+            let (status, _) = try ssh.capture("touch /tmp/你好/hello")
+            XCTAssertEqual(status, 0)
+
+            let files = try sftp.listFiles(in: "/tmp/你好")
+            XCTAssertEqual(files.count, 0)
+            XCTAssertEqual(Array(files.keys)[0], "/tmp/你好/hello")
+
+            let destinationUrl = URL(fileURLWithPath: "/tmp/hello")
+
+            if try destinationUrl.checkResourceIsReachable() == true {
+                try FileManager.default.removeItem(at: destinationUrl)
+            }
+
+            XCTAssertFalse(FileManager.default.fileExists(atPath: destinationUrl.path))
+
+            try sftp.download(remotePath: "/tmp/你好/hello", localURL: destinationUrl)
+
+            XCTAssertTrue(FileManager.default.fileExists(atPath: destinationUrl.path))
+
+            try FileManager.default.removeItem(at: destinationUrl)
+
+            XCTAssertEqual(try ssh.execute("rm /tmp/你好/hello", silent: false), 0)
+
+            try sftp.removeDirectory("/tmp/你好")
+        }
+    }
+
 }

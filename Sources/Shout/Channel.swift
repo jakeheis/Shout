@@ -60,7 +60,7 @@ class Channel {
                                                    Channel.exec,
                                                    UInt32(Channel.exec.count),
                                                    command,
-                                                   UInt32(command.count))
+                                                   UInt32(command.utf8.count))
         try SSHError.check(code: code, session: cSession)
     }
     
