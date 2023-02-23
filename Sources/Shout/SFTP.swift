@@ -26,7 +26,7 @@ public class SFTP {
             guard let sftpHandle = libssh2_sftp_open_ex(
                 sftpSession,
                 remotePath,
-                UInt32(remotePath.count),
+                UInt32(remotePath.utf8.count),
                 UInt(flags),
                 Int(mode),
                 openType) else {

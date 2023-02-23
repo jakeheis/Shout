@@ -46,7 +46,7 @@ class Session {
     func authenticate(username: String, privateKey: String, publicKey: String, passphrase: String?) throws {
         let code = libssh2_userauth_publickey_fromfile_ex(cSession,
                                                           username,
-                                                          UInt32(username.count),
+                                                          UInt32(username.utf8.count),
                                                           publicKey,
                                                           privateKey,
                                                           passphrase)
@@ -56,9 +56,9 @@ class Session {
     func authenticate(username: String, password: String) throws {
         let code = libssh2_userauth_password_ex(cSession,
                                                 username,
-                                                UInt32(username.count),
+                                                UInt32(username.utf8.count),
                                                 password,
-                                                UInt32(password.count),
+                                                UInt32(password.utf8.count),
                                                 nil)
         try SSHError.check(code: code, session: cSession)
     }

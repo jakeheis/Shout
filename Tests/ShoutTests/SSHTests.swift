@@ -49,4 +49,13 @@ class ShoutTests: XCTestCase {
         }
     }
 
+    func testUnicode() throws {
+        try SSH.connect(host: ShoutServer.host, username: ShoutServer.username, authMethod: ShoutServer.authMethod) { (ssh) in
+            let (status, _) = try ssh.capture("touch /tmp/你好")
+            XCTAssertEqual(status, 0)
+
+            XCTAssertEqual(try ssh.execute("rm /tmp/你好", silent: false), 0)
+        }
+    }
+
 }
