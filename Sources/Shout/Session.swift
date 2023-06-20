@@ -26,7 +26,7 @@ class Session {
         }
     }
     
-    init() throws {
+    init(timeout: UInt = 0) throws {
         guard Session.initResult == 0 else {
             throw SSHError.genericError("libssh2_init failed")
         }
@@ -36,6 +36,7 @@ class Session {
         }
         
         self.cSession = cSession
+        libssh2_session_set_timeout(cSession, Int(timeout))
     }
     
     func handshake(over socket: Socket) throws {
