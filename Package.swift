@@ -1,22 +1,21 @@
-// swift-tools-version:5.0
-// Managed by ice
+// swift-tools-version:5.6
 
 import PackageDescription
 
 let package = Package(
     name: "Shout",
-    platforms: [
-        .macOS(.v10_10)
-    ],
     products: [
         .library(name: "Shout", targets: ["Shout"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/IBM-Swift/BlueSocket", from: "1.0.46"),
+        .package(url: "https://github.com/IBM-Swift/BlueSocket", from: "2.0.0"),
+        .package(url: "https://github.com/DimaRU/Libssh2Prebuild.git", exact: "1.11.0-OpenSSL-1-1-1w")
     ],
     targets: [
-        .systemLibrary(name: "CSSH", pkgConfig: "libssh2", providers: [.brew(["libssh2","openssl"])]),
-        .target(name: "Shout", dependencies: ["CSSH", "Socket"]),
+        .target(name: "Shout", dependencies: [
+            .product(name: "Socket", package: "BlueSocket"),
+            .product(name: "CSSH", package: "Libssh2Prebuild")
+        ]),
         .testTarget(name: "ShoutTests", dependencies: ["Shout"]),
     ]
 )
